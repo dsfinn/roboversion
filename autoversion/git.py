@@ -1,7 +1,13 @@
 import logging
-import subprocess
-from hashlib import sha1
+import re
 from pathlib import Path
+from subprocess import CalledProcessError, check_output
+
+from autoversion.version import PEP440_EXPRESSION, Version
+
+
+VERSION_TAG_EXPRESSION = re.compile(
+    f'v?(?P<version>{PEP440_EXPRESSION.pattern})')
 
 
 logger = logging.getLogger(__name__)
@@ -25,20 +31,30 @@ class Repository:
 
     @property
     def refs(self):
-        result = self.run_command('git', 'for-each-ref')
+        result = self.run_command(
+            'git',
+            'for-each-ref',
+            '--format=%(refname:short),%(upstream:short)',
+        )
         for line in result.splitlines():
             line = line.strip()
             if not line:
                 continue
-            _, _, ref_name = line.split()
-            yield Reference(repository=self, name=ref_name)
+            ref_name, *upstreams = line.split(',')
+            upstream_name, = upstreams if upstreams else (None,)
+            reference = Reference(repository=self, name=ref_name)
+            upstream = Reference(repository=self, name=upstream_name)
+            yield reference, upstream
 
     def run_command(self, *arguments, **kwargs):
         kwargs = {'cwd': self.path, 'text': True, **kwargs}
-        return subprocess.check_output(arguments, **kwargs)
+        return check_output(arguments, **kwargs)
 
 
 class Reference:
+    _NO_TAG_RETURN_CODE = 128
+    _NULL_DEFAULT = object()
+
     def __init__(self, repository=None, name='HEAD'):
         if repository is None:
             repository = Repository(path=Path.cwd())
@@ -52,7 +68,13 @@ class Reference:
         )
 
     def __str__(self):
-        return f'{self.repository}:{self.name}'
+        return str(self.name)
+
+    @property
+    def branch(self):
+        result = self._run_command(
+            'git', 'rev-parse', '--abbrev-ref', self.name)
+        return Reference(repository=self.repository, name=result.strip())
 
     @property
     def hash(self):
@@ -66,12 +88,82 @@ class Reference:
             'git', 'rev-list', '--abbrev-commit', '--max-count=1', self.name)
         return result.strip()
 
-    def commits_since(self, comparand=None):
+    @property
+    def upstream(self):
+        for ref, upstream in self.repository.refs:
+            if self.name == ref.name:
+                return upstream
+        return None
+
+    def get_commits_since(self, comparand=None):
         arguments = ['git', 'rev-list', '--count', self.name]
         if comparand is not None:
-            arguments.append(f'^{comparand.name}')
+            arguments.append(f'^{comparand}')
         result = self._run_command(*arguments)
         return int(result.strip())
+
+    def get_commits_since_tagged_version(
+            self, tag_expression=VERSION_TAG_EXPRESSION):
+        arguments = ['git', 'describe', '--tags']
+        while True:
+            result = self._run_command(*arguments, self.name)
+            tag, *description  = result.strip().rsplit('-', 2)
+            match = tag_expression.fullmatch(tag)
+            if match:
+                version = Version(string=match['version'])
+                break
+            arguments.extend(('--exclude', tag))
+        if description:
+            distance, _ = description
+            distance = int(distance)
+        else:
+            distance = None
+        return distance, version
+
+    def get_version(
+            self,
+            candidate_branch=None,
+            beta_branch=None,
+            alpha_branch=None,
+            post=None,
+            local=_NULL_DEFAULT,
+            release_bump_index=1,
+    ):
+        try:
+            prerelease_version, base_version = (
+                self.get_commits_since_tagged_version())
+        except CalledProcessError as error:
+            if error.returncode == self._NO_TAG_RETURN_CODE:
+                prerelease_version = self.get_commits_since()
+                base_version = Version(release=0)
+            else:
+                raise error
+        if prerelease_version is None:
+            return base_version
+        components = {
+            'release': base_version.release.get_bumped(release_bump_index)
+        }
+        branch = self.branch
+        prereleases = {
+            'candidate': candidate_branch,
+            'beta': beta_branch,
+            'alpha': alpha_branch,
+        }
+        for component, prerelease_branch in prereleases.items():
+            if prerelease_branch is None:
+                continue
+            if branch.name == prerelease_branch:
+                components[component] = prerelease_version
+                return Version(**components)
+        if alpha_branch is not None:
+            components['alpha'] = prerelease_version + 1
+            components['dev'] = self.get_commits_since(alpha_branch)
+        else:
+            components['dev'] = prerelease_version
+        if local is self._NULL_DEFAULT:
+            local = self.hash_abbreviation
+        components['local'] = local
+        return Version(**components)
 
     def _run_command(self, *arguments, **kwargs):
         return self.repository.run_command(*arguments, **kwargs)

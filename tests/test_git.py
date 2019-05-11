@@ -18,7 +18,7 @@ def repository(request):
 
 @fixture
 def references(request, repository):
-    return list(repository.refs)
+    return list(x for x, _ in repository.refs)
 
 @given(path=text())
 def test_repository(path):
@@ -48,8 +48,8 @@ def test_hashes(references):
 def test_distance(references):
     for reference in references:
         for comparand in references:
-            base_count = reference.commits_since()
-            count = reference.commits_since(comparand)
+            base_count = reference.get_commits_since()
+            count = reference.get_commits_since(comparand)
             logger.debug('%s commits in history of %s', base_count, reference)
             logger.debug('%s commits since %s', count, comparand)
             assert base_count >= 1
