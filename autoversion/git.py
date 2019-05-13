@@ -58,6 +58,8 @@ class Reference:
     def __init__(self, repository=None, name='HEAD'):
         if repository is None:
             repository = Repository(path=Path.cwd())
+        elif isinstance(repository, (str, Path)):
+            repository = Repository(path=repository)
         self.repository = repository
         self.name = name
 
