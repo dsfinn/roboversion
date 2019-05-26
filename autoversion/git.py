@@ -13,60 +13,22 @@ VERSION_TAG_EXPRESSION = re.compile(
 logger = logging.getLogger(__name__)
 
 
-class Repository:
-    def __init__(self, path=None):
-        if path is None:
-            path = Path.cwd()
-        self.path = Path(path).absolute()
-
-    def __repr__(self):
-        return f'{self.__class__.__name__}(path={self.path!r})'
-
-    def __str__(self):
-        return self.path.name
-
-    @property
-    def head(self):
-        return Reference(repository=self, name='HEAD')
-
-    @property
-    def refs(self):
-        result = self.run_command(
-            'git',
-            'for-each-ref',
-            '--format=%(refname:short),%(upstream:short)',
-        )
-        for line in result.splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            ref_name, *upstreams = line.split(',')
-            upstream_name, = upstreams if upstreams else (None,)
-            reference = Reference(repository=self, name=ref_name)
-            upstream = Reference(repository=self, name=upstream_name)
-            yield reference, upstream
-
-    def run_command(self, *arguments, **kwargs):
-        kwargs = {'cwd': self.path, 'text': True, **kwargs}
-        return check_output(arguments, **kwargs)
-
-
 class Reference:
+    AUTO_LOCAL = object()
+
     _NO_TAG_RETURN_CODE = 128
     _NULL_DEFAULT = object()
 
-    def __init__(self, repository=None, name='HEAD'):
-        if repository is None:
-            repository = Repository(path=Path.cwd())
-        elif isinstance(repository, (str, Path)):
-            repository = Repository(path=repository)
-        self.repository = repository
+    def __init__(self, repository_path=None, name='HEAD'):
+        if repository_path is None:
+            repository_path = Path.cwd()
+        self.path = Path(repository_path).absolute()
         self.name = name
 
     def __repr__(self):
         return (
             f'{self.__class__.__name__}'
-            f'(repository={self.repository!r}, name={self.name!r})'
+            f'(repository_path={self.path!r}, name={self.name!r})'
         )
 
     def __str__(self):
@@ -76,7 +38,7 @@ class Reference:
     def branch(self):
         result = self._run_command(
             'git', 'rev-parse', '--abbrev-ref', self.name)
-        return Reference(repository=self.repository, name=result.strip())
+        return Reference(repository_path=self.path, name=result.strip())
 
     @property
     def hash(self):
@@ -90,13 +52,6 @@ class Reference:
             'git', 'rev-list', '--abbrev-commit', '--max-count=1', self.name)
         return result.strip()
 
-    @property
-    def upstream(self):
-        for ref, upstream in self.repository.refs:
-            if self.name == ref.name:
-                return upstream
-        return None
-
     def get_commits_since(self, comparand=None):
         arguments = ['git', 'rev-list', '--count', self.name]
         if comparand is not None:
@@ -104,17 +59,16 @@ class Reference:
         result = self._run_command(*arguments)
         return int(result.strip())
 
-    def get_commits_since_tagged_version(
-            self, tag_expression=VERSION_TAG_EXPRESSION):
+    def get_commits_since_tagged_version(self):
         arguments = ['git', 'describe', '--tags']
         while True:
             result = self._run_command(*arguments, self.name)
             tag, *description  = result.strip().rsplit('-', 2)
-            match = tag_expression.fullmatch(tag)
-            if match:
-                version = Version(string=match['version'])
+            try:
+                version = Version.from_str(tag)
                 break
-            arguments.extend(('--exclude', tag))
+            except ValueError:
+                arguments.extend(('--exclude', tag))
         if description:
             distance, _ = description
             distance = int(distance)
@@ -128,7 +82,7 @@ class Reference:
             beta_branch=None,
             alpha_branch=None,
             post=None,
-            local=_NULL_DEFAULT,
+            local=AUTO_LOCAL,
             release_bump_index=1,
     ):
         try:
@@ -137,7 +91,7 @@ class Reference:
         except CalledProcessError as error:
             if error.returncode == self._NO_TAG_RETURN_CODE:
                 prerelease_version = self.get_commits_since()
-                base_version = Version(release=0)
+                base_version = Version(release='0')
             else:
                 raise error
         if prerelease_version is None:
@@ -145,27 +99,54 @@ class Reference:
         components = {
             'release': base_version.release.get_bumped(release_bump_index)
         }
-        branch = self.branch
-        prereleases = {
-            'candidate': candidate_branch,
-            'beta': beta_branch,
-            'alpha': alpha_branch,
+        prerelease_prefixes = {
+            'rc': candidate_branch,
+            'b': beta_branch,
+            'a': alpha_branch,
         }
-        for component, prerelease_branch in prereleases.items():
+        branch_name = self.branch.name
+        for prefix, prerelease_branch in prerelease_prefixes.items():
             if prerelease_branch is None:
                 continue
-            if branch.name == prerelease_branch:
-                components[component] = prerelease_version
+            if branch_name == str(prerelease_branch):
+                components['prerelease'] = f'{prefix}{prerelease_version}'
                 return Version(**components)
         if alpha_branch is not None:
-            components['alpha'] = prerelease_version + 1
+            components['prerelease'] = f'a{prerelease_version + 1}'
             components['dev'] = self.get_commits_since(alpha_branch)
         else:
             components['dev'] = prerelease_version
-        if local is self._NULL_DEFAULT:
+        if post is not None:
+            components.pop('dev')
+            components['post'] = post
+        if local is self.AUTO_LOCAL:
             local = self.hash_abbreviation
         components['local'] = local
         return Version(**components)
 
     def _run_command(self, *arguments, **kwargs):
-        return self.repository.run_command(*arguments, **kwargs)
+        return check_output(
+            arguments, cwd=self.path, text=True, **kwargs)
+
+    @classmethod
+    def all_from_repository(cls, path=None):
+        if path is None:
+            path = Path.cwd()
+        result = check_output(
+            (
+                'git',
+                'for-each-ref',
+                '--format=%(refname:short),%(upstream:short)',
+            ),
+            cwd=path,
+            text=True,
+        )
+        for line in result.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            ref_name, *upstreams = line.split(',')
+            upstream_name, = upstreams if upstreams else (None,)
+            reference = Reference(repository_path=path, name=ref_name)
+            upstream = Reference(repository_path=path, name=upstream_name)
+            yield reference, upstream

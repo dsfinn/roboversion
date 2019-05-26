@@ -2,7 +2,7 @@ import logging
 
 from hypothesis import given, strategies
 
-from autoversion.version import ReleaseVersion
+from autoversion.version import Release
 
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,6 @@ def release_components(draw):
     return draw(
         strategies.one_of(
             release_component_tuples(),
-            release_component_strings(),
             strategies.integers(min_value=0),
         )
     )
@@ -34,7 +33,7 @@ def release_components(draw):
 
 @given(release_components=release_components())
 def test_release_version(release_components):
-    release_version = ReleaseVersion(components=release_components)
+    release_version = Release(components=release_components)
     message = (
         f'constructed {release_version}: {release_version!r}'
         f' from components {release_components!r}'
