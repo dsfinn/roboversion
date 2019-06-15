@@ -10,13 +10,13 @@ logger = logging.getLogger(__name__)
 
 
 def get_version(
-        project_path,
-        target_ref,
-        alpha_branch,
-        beta_branch,
-        release_branch,
-        post,
-        local,
+        project_path=None,
+        target_ref='HEAD',
+        alpha_branch=None,
+        beta_branch=None,
+        release_branch=None,
+        post=None,
+        local=Reference.AUTO_LOCAL,
 ):
     ref = Reference(repository_path=project_path, name=target_ref)
     return ref.get_version(
@@ -55,7 +55,7 @@ def main():
     parser.add_argument(
         '--log_level', default='DEBUG', help='The logging level')
     arguments = parser.parse_args(sys.argv[1:])
-    logger.setLevel(arguments.log_level)
+    logging.basicConfig(level=arguments.log_level)
     local = arguments.local
     if arguments.no_auto_local and local is Reference.AUTO_LOCAL:
         local = None

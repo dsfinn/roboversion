@@ -241,6 +241,9 @@ class Version:
         self.dev = dev
         self.local = local
 
+    def __repr__(self):
+        return f'{self.__class__.__name__}.from_string({str(self)!r})'
+
     def __str__(self):
         strings = [str(self.release)]
         if self.prerelease:

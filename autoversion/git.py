@@ -77,7 +77,7 @@ class Reference:
             distance = int(distance)
         else:
             distance = None
-        return distance, version
+        return distance, version, tag
 
     def get_version(
             self,
@@ -88,13 +88,17 @@ class Reference:
             local=AUTO_LOCAL,
             release_bump_index=None,
     ):
+        """
+        Total commits in history...
+        """
         try:
-            prerelease_version, base_version = (
+            prerelease_version, base_version, release_tag = (
                 self.get_commits_since_tagged_version())
         except CalledProcessError as error:
             if error.returncode == self._NO_TAG_RETURN_CODE:
                 prerelease_version = self.get_commits_in_history()
                 base_version = Version.from_datetime()
+                release_tag = None
             else:
                 raise error
         if prerelease_version is None:
@@ -107,16 +111,31 @@ class Reference:
             'b': beta_branch,
             'a': alpha_branch,
         }
+        prerelease_prefixes = {
+            x: y for x, y in prerelease_prefixes.items() if y is not None}
         branch_name = self.branch.name
         for prefix, prerelease_branch in prerelease_prefixes.items():
-            if prerelease_branch is None:
-                continue
             if branch_name == str(prerelease_branch):
                 components['prerelease'] = f'{prefix}{prerelease_version}'
                 return Version(**components)
-        if alpha_branch is not None:
-            components['prerelease'] = f'a{prerelease_version + 1}'
-            components['dev'] = self.get_commits_in_history(since=alpha_branch)
+        if prerelease_prefixes:
+            components['dev'] = self.get_commits_in_history(
+                since=prerelease_branch)
+            if components['dev'] == 0:
+                logger.warning(
+                    '%s is a development ref in the history of an upstream'
+                    ' prerelease branch; output version will be local only',
+                    self,
+                )
+                return Version(
+                    release=base_version.release,
+                    local=self.hash_abbreviation,
+                )
+            prerelease_ref = Reference(
+                repository_path=self.path, name=prerelease_branch)
+            since_upstream = prerelease_ref.get_commits_in_history(
+                since=release_tag)
+            components['prerelease'] = f'{prefix}{since_upstream + 1}'
         else:
             components['dev'] = prerelease_version
         if post is not None:
@@ -125,6 +144,7 @@ class Reference:
         if local is self.AUTO_LOCAL:
             local = self.hash_abbreviation
         components['local'] = local
+        logger.debug('Constructing version from %r', components)
         return Version(**components)
 
     def _run_command(self, *arguments, **kwargs):

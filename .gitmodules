@@ -1,0 +1,3 @@
+[submodule "tests/fixtures/test_repo"]
+	path = tests/fixtures/test_repo
+	url = https://github.com/dsfinn/autoversion_fixture.git
