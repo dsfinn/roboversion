@@ -24,7 +24,7 @@ class Release:
 
     def __init__(self, components):
         """
-
+        :param iterable components: An iterable of non-negative integers
         """
         try:
             iter(components)
@@ -44,6 +44,15 @@ class Release:
         return '.'.join(str(x) for x in self.components)
 
     def get_bumped(self, index=None, increment=1):
+        """
+        Obtain a new release version by bumping the component at the specified
+        index by the specified increment. All following components will be set
+        to zero.
+
+        :param int index: Position of the component to bump.
+        :param int increment: Amouny by which to increase specified component
+        :return Release:
+        """
         if index is None:
             index = len(self.components) - 1
         new_components = [
@@ -57,12 +66,24 @@ class Release:
 
     @classmethod
     def from_str(cls, string):
+        """
+        Create a Release version from a PEP440-compliant release string
+
+        :param str string: A PEP440-comliant release string
+        :return Release:
+        """
         match = cls.EXPRESSION.fullmatch(string.strip())
         return cls(components=match['components'].split('.'))
 
 
 class Prerelease:
+    """
+    A prerelease version, e.g. rc1337
+    """
     class Category(enum.IntEnum):
+        """
+        Types of prerelease versions
+        """
         ALPHA = 1
         BETA = 2
         RELEASE_CANDIDATE = 3
@@ -83,6 +104,10 @@ class Prerelease:
     }
 
     def __init__(self, category, value=0):
+        """
+        :param Prerelease.Category category: A prerelease category
+        :param int value: A non-negative integer
+        """
         self.category = category
         self.value = value
 
@@ -90,10 +115,24 @@ class Prerelease:
         return f'{self._PREFIXES[self.category]}{self.value}'
 
     def get_bumped(self, increment=1):
+        """
+        Create a new prerelease version by bumping this one by the specified
+        increment. The category will remain the same.
+
+        :param int increment: The amount by which to increase the version
+        :return Prerelease:
+        """
         return Prerelease(category=self.category, value=self.value + increment)
 
     @classmethod
     def from_str(cls, string):
+        """
+        Create a Prerelease version from a PEP440-compliant prerelease version
+        string.
+
+        :param str string: A PEP440-compliant prerelease version string
+        :return Prerelease:
+        """
         match = cls.EXPRESSION.fullmatch(string.strip())
         for name in 'alpha', 'beta', 'release_candidate':
             if match[name]:
@@ -109,10 +148,17 @@ class Prerelease:
 
 
 class LocalVersion:
+    """
+    A PEP440-compliant local version specification
+    """
     EXPRESSION = re.compile(r'[a-z0-9]+([.\-_][a-z0-9]+)*', flags=re.IGNORECASE)
     _SEPARATOR_EXPRESSION = re.compile(r'[.\-_]')
 
     def __init__(self, segments):
+        """
+        :param iterable segments: An iterable of local version segments
+            comprising non-negative integers or alphanumeric character strings.
+        """
         self.segments = tuple(segments)
 
     def __str__(self):
@@ -120,6 +166,12 @@ class LocalVersion:
 
     @classmethod
     def from_str(cls, string):
+        """
+        Create a local version specifier from a PEP440-compliant local version
+        string.
+
+        :param str string: A PEP440-compliant local version string
+        """
         if not cls.EXPRESSION.fullmatch(string):
             raise ValueError(
                 f'{string!r} is not a valid local version specifier')
@@ -133,6 +185,9 @@ class LocalVersion:
 
 
 class Version:
+    """
+    A PEP440-compliant version
+    """
     EXPRESSION = re.compile(
         r'v?(?P<release>' + Release.EXPRESSION.pattern + r')' + r'('
             r'[.-_]?(?P<prerelease>' + Prerelease.EXPRESSION.pattern + r'))?'
@@ -152,6 +207,14 @@ class Version:
             dev=None,
             local=None,
     ):
+        """
+        :param Release release: The release version
+        :param int epoch: The epoch
+        :param Prerelease prerelease: The prerelease version
+        :param int post: The postrelease version
+        :param int dev: The development version
+        :param str local: The local version string
+        """
         if epoch < 0:
             raise ValueError
         if isinstance(release, str):
@@ -183,6 +246,15 @@ class Version:
         return ''.join(strings)
 
     def get_bumped(self, release_index=None, field='release', increment=1):
+        """
+        Get the Version corresponding to this Version bumped according to the
+        specified parameters.
+
+        :param int release_index: The index of the release version to bump
+        :param str field: The Version segment to bump
+        :param int increment: The amount by which to bump the specified segment
+        :return Version:
+        """
         if field == 'release':
             release = self.release.get_bumped(
                 index=release_index, increment=increment)
@@ -205,6 +277,12 @@ class Version:
 
     @classmethod
     def from_str(cls, string):
+        """
+        Construct a Version from a string
+
+        :param str string: A PEP44-compliant version string
+        :return Version:
+        """
         match = cls.EXPRESSION.fullmatch(string)
         if not match:
             raise ValueError(
