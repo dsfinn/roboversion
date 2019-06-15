@@ -86,7 +86,7 @@ class Reference:
             alpha_branch=None,
             post=None,
             local=AUTO_LOCAL,
-            release_bump_index=1,
+            release_bump_index=None,
     ):
         try:
             prerelease_version, base_version = (
@@ -94,7 +94,7 @@ class Reference:
         except CalledProcessError as error:
             if error.returncode == self._NO_TAG_RETURN_CODE:
                 prerelease_version = self.get_commits_in_history()
-                base_version = Version(release='0')
+                base_version = Version.from_datetime()
             else:
                 raise error
         if prerelease_version is None:

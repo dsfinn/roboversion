@@ -1,6 +1,7 @@
 import enum
 import logging
 import re
+from datetime import datetime
 from itertools import zip_longest
 
 
@@ -63,6 +64,13 @@ class Release:
         new_components.extend(
             0 for _ in range(len(self.components) - len(new_components)))
         return Release(components=new_components)
+
+    @classmethod
+    def from_datetime(cls, time=None):
+        if time is None:
+            time = datetime.utcnow()
+        components = time.utctimetuple()[:3]
+        return cls(components=components)
 
     @classmethod
     def from_str(cls, string):
@@ -274,6 +282,10 @@ class Version:
             optionals['dev'] = self.dev + increment
             return self.__class__(release=self.release, **optionals)
         raise ValueError(f'{field!r} is not a bumpable version field')
+
+    @classmethod
+    def from_datetime(cls, time=None, **kwargs):
+        return cls(release=Release.from_datetime(time), **kwargs)
 
     @classmethod
     def from_str(cls, string):
