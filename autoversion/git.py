@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 class Reference:
+    """
+    A Git ref
+    """
     AUTO_LOCAL = object()
 
     _NO_TAG_RETURN_CODE = 128
@@ -52,10 +55,10 @@ class Reference:
             'git', 'rev-list', '--abbrev-commit', '--max-count=1', self.name)
         return result.strip()
 
-    def get_commits_since(self, comparand=None):
+    def get_commits_in_history(self, since=None):
         arguments = ['git', 'rev-list', '--count', self.name]
-        if comparand is not None:
-            arguments.append(f'^{comparand}')
+        if since is not None:
+            arguments.append(f'^{since}')
         result = self._run_command(*arguments)
         return int(result.strip())
 
@@ -90,7 +93,7 @@ class Reference:
                 self.get_commits_since_tagged_version())
         except CalledProcessError as error:
             if error.returncode == self._NO_TAG_RETURN_CODE:
-                prerelease_version = self.get_commits_since()
+                prerelease_version = self.get_commits_in_history()
                 base_version = Version(release='0')
             else:
                 raise error
@@ -113,7 +116,7 @@ class Reference:
                 return Version(**components)
         if alpha_branch is not None:
             components['prerelease'] = f'a{prerelease_version + 1}'
-            components['dev'] = self.get_commits_since(alpha_branch)
+            components['dev'] = self.get_commits_in_history(since=alpha_branch)
         else:
             components['dev'] = prerelease_version
         if post is not None:
