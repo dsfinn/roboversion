@@ -22,7 +22,8 @@ copyright = '2019, David Finn'
 author = 'David Finn'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0.2'
+from roboversion import get_version
+release = str(get_version())
 
 
 # -- General configuration ---------------------------------------------------
@@ -31,6 +32,7 @@ release = '1.0.2'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+	'sphinx.ext.autodoc',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -40,6 +42,10 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path('..').absolute()))
 
 
 # -- Options for HTML output -------------------------------------------------

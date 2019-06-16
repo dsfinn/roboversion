@@ -56,7 +56,7 @@ class Release:
 
 		:param int index: Position of the component to bump.
 		:param int increment: Amouny by which to increase specified component
-		:return Release:
+		:returns: Release
 		"""
 		if index is None:
 			index = len(self.components) - 1
@@ -82,7 +82,7 @@ class Release:
 		Create a Release version from a PEP440-compliant release string
 
 		:param str string: A PEP440-comliant release string
-		:return Release:
+		:returns: Release
 		"""
 		match = cls.EXPRESSION.fullmatch(string.strip())
 		return cls(components=match['components'].split('.'))
@@ -132,7 +132,7 @@ class Prerelease:
 		increment. The category will remain the same.
 
 		:param int increment: The amount by which to increase the version
-		:return Prerelease:
+		:returns: Prerelease
 		"""
 		return Prerelease(category=self.category, value=self.value + increment)
 
@@ -143,7 +143,7 @@ class Prerelease:
 		string.
 
 		:param str string: A PEP440-compliant prerelease version string
-		:return Prerelease:
+		:returns: Prerelease
 		"""
 		match = cls.EXPRESSION.fullmatch(string.strip())
 		for name in 'alpha', 'beta', 'release_candidate':
@@ -268,7 +268,7 @@ class Version:
 		:param int release_index: The index of the release version to bump
 		:param str field: The Version segment to bump
 		:param int increment: The amount by which to bump the specified segment
-		:return Version:
+		:returns: Version
 		"""
 		if field == 'release':
 			release = self.release.get_bumped(
@@ -299,8 +299,8 @@ class Version:
 		"""
 		Construct a Version from a string
 
-		:param str string: A PEP44-compliant version string
-		:return Version:
+		:param str string: A PEP440-compliant version string
+		:returns: Version
 		"""
 		match = cls.EXPRESSION.fullmatch(string)
 		if not match:

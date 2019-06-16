@@ -45,7 +45,7 @@ def get_version(
 	:param str release_branch: The release candidate branch
 	:param int post: The postdevelopment version
 	:param str local: The local version string
-	:return Version:
+	:returns: Version
 	"""
 	ref = Reference(repository_path=project_path, name=target_ref)
 	return ref.get_version(

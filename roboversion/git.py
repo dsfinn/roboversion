@@ -49,7 +49,7 @@ class Reference:
 		"""
 		The current branch
 
-		:return Reference:
+		:returns: Reference
 		"""
 		result = self._run_command(
 			'git', 'rev-parse', '--abbrev-ref', self.name)
@@ -60,7 +60,7 @@ class Reference:
 		"""
 		The hash of the commit
 
-		:return int:
+		:returns: int
 		"""
 		result = self._run_command(
 			'git', 'rev-list', '--max-count=1', self.name)
@@ -71,7 +71,7 @@ class Reference:
 		"""
 		The abbreviated hash string of the commit
 
-		:return str:
+		:returns: str
 		"""
 		result = self._run_command(
 			'git', 'rev-list', '--abbrev-commit', '--max-count=1', self.name)
@@ -83,7 +83,7 @@ class Reference:
 		specified, exclude commits in the history of the specified ref.
 
 		:param str since: The ref of which history should be excluded
-		:return int:
+		:returns: int
 		"""
 		arguments = ['git', 'rev-list', '--count', self.name]
 		if since is not None:
@@ -96,7 +96,7 @@ class Reference:
 		Get the number of commits since the last tagged version, as well as
 		the associated Version and tag string.
 
-		:return tuple(int, Version, str):
+		:returns: tuple(int, Version, str)
 		"""
 		arguments = ['git', 'describe', '--tags']
 		while True:
@@ -148,7 +148,7 @@ class Reference:
 		:param str local: Local version string
 		:param int release_bump_index: The index of the release component to
 			bump
-		:return Version:
+		:returns: Version
 		"""
 		try:
 			since_release, base_version, release_tag = (
@@ -221,7 +221,7 @@ class Reference:
 		subprocess, using keyword arguments as arguments to the check_output
 		function
 
-		:return str:
+		:returns: str
 		"""
 		return check_output(
 			arguments, cwd=self.path, text=True, **kwargs)
@@ -232,7 +232,7 @@ class Reference:
 		Iterate through the refs at the specified repository path
 
 		:param Path path: Git repository path
-		:yield tuple(reference, upstream):
+		:yields: tuple(reference, upstream)
 		"""
 		if path is None:
 			path = Path.cwd()
