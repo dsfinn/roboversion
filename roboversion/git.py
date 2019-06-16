@@ -105,7 +105,8 @@ class Reference:
 			try:
 				version = Version.from_str(tag)
 				break
-			except ValueError:
+			except ValueError as error:
+				logger.debug('Skipping tag %r: %s', tag, error)
 				arguments.extend(('--exclude', tag))
 		if description:
 			distance, _ = description
