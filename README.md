@@ -17,6 +17,24 @@ David Finn: dsfinn@gmail.com
 pip install roboversion
 ```
 
+## Quickstart
+
+roboversion trivialises versioning for packaging in `setup.py`:
+
+```python
+from setuptools import setup
+from roboversion import get_version
+...
+setup(
+	...
+	version=str(get_version(alpha_branch='develop')),
+	...
+)
+```
+
+Beyond tagging release commits as normal, this might be the only time the
+developer needs to touch versioning for their project at all.
+
 ## Description
 
 Running this module, or its `get_version` function, will inspect the specified
