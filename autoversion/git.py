@@ -6,11 +6,11 @@ from subprocess import CalledProcessError, check_output
 from autoversion.version import PEP440_EXPRESSION, Version
 
 
+logger = logging.getLogger(__name__)
+
+
 VERSION_TAG_EXPRESSION = re.compile(
     f'v?(?P<version>{PEP440_EXPRESSION.pattern})')
-
-
-logger = logging.getLogger(__name__)
 
 
 class Reference:
@@ -23,6 +23,10 @@ class Reference:
     _NULL_DEFAULT = object()
 
     def __init__(self, repository_path=None, name='HEAD'):
+        """
+        :param Path repository_path: Path to project repository
+        :param str name: Git ref string
+        """
         if repository_path is None:
             repository_path = Path.cwd()
         self.path = Path(repository_path).absolute()
@@ -39,23 +43,45 @@ class Reference:
 
     @property
     def branch(self):
+        """
+        The current branch
+
+        :return Reference:
+        """
         result = self._run_command(
             'git', 'rev-parse', '--abbrev-ref', self.name)
         return Reference(repository_path=self.path, name=result.strip())
 
     @property
     def hash(self):
+        """
+        The hash of the commit
+
+        :return int:
+        """
         result = self._run_command(
             'git', 'rev-list', '--max-count=1', self.name)
         return int(result.strip(), base=16)
 
     @property
     def hash_abbreviation(self):
+        """
+        The abbreviated hash string of the commit
+
+        :return str:
+        """
         result = self._run_command(
             'git', 'rev-list', '--abbrev-commit', '--max-count=1', self.name)
         return result.strip()
 
     def get_commits_in_history(self, since=None):
+        """
+        Get the number of commits in the history of this ref. If since is
+        specified, exclude commits in the history of the specified ref.
+
+        :param str since: The ref of which history should be excluded
+        :return int:
+        """
         arguments = ['git', 'rev-list', '--count', self.name]
         if since is not None:
             arguments.append(f'^{since}')
@@ -63,6 +89,12 @@ class Reference:
         return int(result.strip())
 
     def get_commits_since_tagged_version(self):
+        """
+        Get the number of commits since the last tagged version, as well as
+        the associated Version and tag string.
+
+        :return tuple(int, Version, str):
+        """
         arguments = ['git', 'describe', '--tags']
         while True:
             result = self._run_command(*arguments, self.name)
@@ -89,7 +121,22 @@ class Reference:
             release_bump_index=None,
     ):
         """
-        Total commits in history...
+        Calculate the version of this ref based on the specified prerelease
+        branches.
+
+        If the ref is tagged with a version, the version will correspond to
+        the tagged version.
+
+        If the current branch is a prerelease branch, the version will
+        will be a corresponding prerelease version of the next release.
+        
+        If the ref is neither a tagged version nor at a prerelease branch,
+        the version will be a development version of the next upstream
+        prerelease branch. If no prerelease branches are specified, the version
+        will be a development version of the next release.
+
+        If the ref is in the history of an upstream prerelease branch, the
+        version will be a local version of the last release.
         """
         try:
             prerelease_version, base_version, release_tag = (
@@ -148,11 +195,24 @@ class Reference:
         return Version(**components)
 
     def _run_command(self, *arguments, **kwargs):
+        """
+        Run the specified positional arguments as a shell command in a
+        subprocess, using keyword arguments as arguments to the check_output
+        function
+
+        :return str:
+        """
         return check_output(
             arguments, cwd=self.path, text=True, **kwargs)
 
     @classmethod
     def all_from_repository(cls, path=None):
+        """
+        Iterate through the refs at the specified repository path
+
+        :param Path path: Git repository path
+        :yield tuple(reference, upstream):
+        """
         if path is None:
             path = Path.cwd()
         result = check_output(
