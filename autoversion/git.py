@@ -137,40 +137,58 @@ class Reference:
 
         If the ref is in the history of an upstream prerelease branch, the
         version will be a local version of the last release.
+
+        :param str candidate_branch: Release candidate prerelease branch
+        :param str beta_branch: Beta prerelease branch
+        :param str alpha_branch: Alpha prerelease branch
+        :param int post: Postdevelopment version number
+        :param str local: Local version string
+        :param int release_bump_index: The index of the release component to
+            bump
+        :return Version:
         """
         try:
-            prerelease_version, base_version, release_tag = (
+            since_release, base_version, release_tag = (
                 self.get_commits_since_tagged_version())
         except CalledProcessError as error:
             if error.returncode == self._NO_TAG_RETURN_CODE:
-                prerelease_version = self.get_commits_in_history()
+                since_release = self.get_commits_in_history()
                 base_version = Version.from_datetime()
                 release_tag = None
             else:
                 raise error
-        if prerelease_version is None:
+        if since_release is None:
             return base_version
         components = {
             'release': base_version.release.get_bumped(release_bump_index)
         }
         prerelease_prefixes = {
-            'rc': candidate_branch,
-            'b': beta_branch,
             'a': alpha_branch,
+            'b': beta_branch,
+            'rc': candidate_branch,
         }
-        prerelease_prefixes = {
-            x: y for x, y in prerelease_prefixes.items() if y is not None}
         branch_name = self.branch.name
-        for prefix, prerelease_branch in prerelease_prefixes.items():
-            if branch_name == str(prerelease_branch):
-                components['prerelease'] = f'{prefix}{prerelease_version}'
+        logger.debug('branch name: %r', branch_name)
+        prerelease_refs = {}
+        for prefix, branch in prerelease_prefixes.items():
+            if branch is None:
+                continue
+            if branch_name == str(branch):
+                components['prerelease'] = f'{prefix}{since_release}'
                 return Version(**components)
-        if prerelease_prefixes:
-            components['dev'] = self.get_commits_in_history(
-                since=prerelease_branch)
-            if components['dev'] == 0:
+            prerelease_refs[prefix] = Reference(
+                repository_path=self.path, name=branch)
+        logger.debug('prerelease_refs: %r', prerelease_refs)
+        if prerelease_refs:
+            distances = {
+                x: self.get_commits_in_history(since=y)
+                for x, y in prerelease_refs.items()
+            }
+            prefix, since_prerelease = min(
+                distances.items(), key=lambda x: x[1])
+            if since_prerelease == 0:
                 logger.warning(
-                    '%s is a development ref in the history of an upstream'
+                    '%r is a development ref in the history of an upstream'
                     ' prerelease branch; output version will be local only',
                     self,
                 )
@@ -178,13 +196,13 @@ class Reference:
                     release=base_version.release,
                     local=self.hash_abbreviation,
                 )
-            prerelease_ref = Reference(
-                repository_path=self.path, name=prerelease_branch)
-            since_upstream = prerelease_ref.get_commits_in_history(
+            prerelease_ref = prerelease_refs[prefix]
+            prerelease_version = prerelease_ref.get_commits_in_history(
                 since=release_tag)
-            components['prerelease'] = f'{prefix}{since_upstream + 1}'
+            components['prerelease'] = f'{prefix}{prerelease_version + 1}'
+            components['dev'] = since_prerelease
         else:
-            components['dev'] = prerelease_version
+            components['dev'] = since_release
         if post is not None:
             components.pop('dev')
             components['post'] = post
