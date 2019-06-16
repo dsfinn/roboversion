@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from autoversion.git import Reference
-from autoversion.version import Version
+from roboversion.git import Reference
+from roboversion.version import Version
 
 @pytest.fixture
 def repository():

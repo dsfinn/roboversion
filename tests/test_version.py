@@ -2,7 +2,7 @@ import logging
 
 from hypothesis import given, strategies
 
-from autoversion.version import Release
+from roboversion.version import Release
 
 
 logger = logging.getLogger(__name__)

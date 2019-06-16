@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from subprocess import CalledProcessError, check_output
 
-from autoversion.version import PEP440_EXPRESSION, Version
+from roboversion.version import PEP440_EXPRESSION, Version
 
 
 logger = logging.getLogger(__name__)

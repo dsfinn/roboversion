@@ -6,7 +6,7 @@ from hypothesis.strategies import (
     composite, builds, data, deferred, dictionaries, just, lists, none, text)
 from pytest import fixture
 
-from autoversion.git import Reference
+from roboversion.git import Reference
 
 
 logger = logging.getLogger(__name__)

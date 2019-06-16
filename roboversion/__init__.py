@@ -4,17 +4,17 @@ A module for autonomous project versioning based on Git repository state.
 Release versions are taken from Git tags, which are expected to be compliant
 with the PEP440 versioning scheme.
 
-Prerelease Gitflow branches can be specified for the assignemnt of prerelease
+Prerelease Gitflow branches can be specified for the assignment of prerelease
 versions to commits relative to those branches.
 
-Postdevelopment and local version component specification is also supported.
+Postdevelopment and local version component specification are also supported.
 """
 import logging
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
 
-from autoversion.git import Reference
+from roboversion.git import Reference
 
 
 logger = logging.getLogger(__name__)
@@ -85,7 +85,7 @@ def main(*args):
         ),
     )
     parser.add_argument(
-        '--log_level', default='DEBUG', help='The logging level')
+        '--log_level', default='INFO', help='The logging level')
     if not args:
         args = sys.argv[1:]
     arguments = parser.parse_args(args)
