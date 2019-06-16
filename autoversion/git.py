@@ -1,3 +1,6 @@
+"""
+Modelling of Git refs for versioning
+"""
 import logging
 import re
 from pathlib import Path

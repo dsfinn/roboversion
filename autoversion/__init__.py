@@ -1,3 +1,14 @@
+"""
+A module for autonomous project versioning based on Git repository state.
+
+Release versions are taken from Git tags, which are expected to be compliant
+with the PEP440 versioning scheme.
+
+Prerelease Gitflow branches can be specified for the assignemnt of prerelease
+versions to commits relative to those branches.
+
+Postdevelopment and local version component specification is also supported.
+"""
 import logging
 import sys
 from argparse import ArgumentParser
@@ -18,6 +29,24 @@ def get_version(
         post=None,
         local=Reference.AUTO_LOCAL,
 ):
+    """
+    Get the Version corresponding to the specified Git ref at the specified
+    repository path. Gitflow prerelease branches, postdevelopment components,
+    and local version strings can also be specified.
+    
+    If a local version string is not specified, development versions will
+    be locally versioned to the abbreviated hash of the ref commit by default.
+    The local version can be specified as `None` to override this behaviour.
+
+    :param str project_path: The path to the project Git repository
+    :param str target_ref: The Git ref string of the target
+    :param str alpha_branch: The alpha prerelease branch
+    :param str beta_branch: The beta prerelease branch
+    :param str release_branch: The release candidate branch
+    :param int post: The postdevelopment version
+    :param str local: The local version string
+    :return Version:
+    """
     ref = Reference(repository_path=project_path, name=target_ref)
     return ref.get_version(
         candidate_branch=release_branch,
@@ -27,7 +56,10 @@ def get_version(
         local=local,
     )
 
-def main():
+def main(*args):
+    """
+    Entrypoint for running the module directly
+    """
     parser = ArgumentParser()
     parser.add_argument(
         '--path', default=Path.cwd(), help='Path to Git project')
@@ -54,7 +86,9 @@ def main():
     )
     parser.add_argument(
         '--log_level', default='DEBUG', help='The logging level')
-    arguments = parser.parse_args(sys.argv[1:])
+    if not args:
+        args = sys.argv[1:]
+    arguments = parser.parse_args(args)
     logging.basicConfig(level=arguments.log_level)
     local = arguments.local
     if arguments.no_auto_local and local is Reference.AUTO_LOCAL:

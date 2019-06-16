@@ -1,3 +1,7 @@
+"""
+Modelling of PEP440-compliant versions and components
+"""
+
 import enum
 import logging
 import re
