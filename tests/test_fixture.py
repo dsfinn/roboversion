@@ -1,7 +1,9 @@
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
+from roboversion.git import logger as git_logger
 from roboversion.git import Reference
 from roboversion.version import Version
 
@@ -46,55 +48,49 @@ def known_version(ref, alpha_branch, beta_branch, candidate_branch):
 		('HEAD',)
 	)
 	components = {'release': Version.from_str('1337.420.69').release}
-	mapping = {}
+	positions = {}
 	for index, refs in enumerate(ref_order):
 		if ref_name in refs:
-			ref_index = index
+			ref_position = index
 		if alpha_branch in refs:
-			mapping['alpha'] = index
+			positions['a'] = index
 		if beta_branch in refs:
-			mapping['beta'] = index
+			positions['b'] = index
 		if candidate_branch in refs:
-			mapping['candidate'] = index
-	prefixes = {'alpha': 'a', 'beta': 'b', 'candidate': 'rc'}
-	upstream = None
-	indices = []
-	for name in ('candidate', 'beta', 'alpha'):
-		index = mapping.get(name, None)
-		if index is None:
-			continue
-		# Return a local version if the git branch histories are out of order
-		if indices and index < max(indices):
-			return Version.from_str(f'1337.420.68+{ref.hash_abbreviation}')
-		indices.append(index)
-		distance = ref_index - index
+			positions['rc'] = index
+	if positions:
+		distances = {x: ref_position - y for x, y in positions.items()}
+		prefix, distance = min(distances.items(), key=lambda x: x[1])
 		if distance < 0:
-			return Version.from_str(f'1337.420.68+{ref.hash_abbreviation}')
-		upstream = name
-		if distance == 0:
-			components['prerelease'] = f'{prefixes[upstream]}{index}'
+			components['dev'] = ref_position
+			components['local'] = ref.hash_abbreviation
 			return Version(**components)
-	if upstream is None:
-		distance = ref_index
+		if distance == 0:
+			components['prerelease'] = f'{prefix}{positions[prefix]}'
+			return Version(**components)
+		components['prerelease'] = f'{prefix}{positions[prefix] + 1}'
+		components['dev'] = distance
 	else:
-		components['prerelease'] = f'{prefixes[upstream]}{mapping[upstream] + 1}'
-	components['dev'] = distance
+		components['dev'] = ref_position
 	components['local'] = ref.hash_abbreviation
 	return Version(**components)
 
+
 def test_version(
 		ref, alpha_branch, beta_branch, candidate_branch, known_version):
-	version = ref.get_version(
-		candidate_branch=candidate_branch,
-		beta_branch=beta_branch,
-		alpha_branch=alpha_branch,
-	)
-	version_string = str(version)
-	known_version_string = str(known_version)
-	if version_string != known_version_string:
-		assert known_version_string.startswith('1337.420.68+')
-		if candidate_branch == 'release_1':
-			assert beta_branch is not None or alpha_branch is not None
-		else:
-			assert beta_branch == 'beta_1'
-			assert alpha_branch in ('alpha_0', 'alpha_1')
+	with mock.patch('roboversion.git.logger.warning', autospec=True) as warn:
+		version = ref.get_version(
+			candidate_branch=candidate_branch,
+			beta_branch=beta_branch,
+			alpha_branch=alpha_branch,
+		)
+		version_string = str(version)
+		known_version_string = str(known_version)
+		if version_string != known_version_string:
+			warn.assert_called_once()
+			assert known_version_string.startswith('1337.420.69.dev')
+			if candidate_branch == 'release_1':
+				assert beta_branch is not None or alpha_branch is not None
+			else:
+				assert beta_branch == 'beta_1'
+				assert alpha_branch in ('alpha_0', 'alpha_1')

@@ -191,11 +191,9 @@ class Reference:
 			prefix, since_prerelease = min(
 				distances.items(), key=lambda x: x[1])
 			if since_prerelease == 0:
-				version = Version(
-					release=base_version.release,
-					dev=since_release,
-					local=self.hash_abbreviation,
-				)
+				components['dev'] = since_release
+				components['local'] = self.hash_abbreviation
+				version = Version(**components)
 				logger.warning(
 					'%r is a development ref in the history of an upstream'
 					' prerelease branch; output version %s will not capture'
