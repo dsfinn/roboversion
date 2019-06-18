@@ -191,15 +191,19 @@ class Reference:
 			prefix, since_prerelease = min(
 				distances.items(), key=lambda x: x[1])
 			if since_prerelease == 0:
-				logger.warning(
-					'%r is a development ref in the history of an upstream'
-					' prerelease branch; output version will be local only',
-					self,
-				)
-				return Version(
+				version = Version(
 					release=base_version.release,
+					dev=since_release,
 					local=self.hash_abbreviation,
 				)
+				logger.warning(
+					'%r is a development ref in the history of an upstream'
+					' prerelease branch; output version %s will not capture'
+					' historical prerelease information.',
+					self,
+					version,
+				)
+				return version
 			if since_prerelease > since_release:
 				logger.warning(
 					'%r is closer to release %s than any prerelease branch'
