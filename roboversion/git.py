@@ -200,11 +200,14 @@ class Reference:
 					release=base_version.release,
 					local=self.hash_abbreviation,
 				)
-			prerelease_ref = prerelease_refs[prefix]
-			prerelease_version = prerelease_ref.get_commits_in_history(
-				since=release_tag)
-			components['prerelease'] = f'{prefix}{prerelease_version + 1}'
-			components['dev'] = since_prerelease
+			if since_prerelease > since_release:
+				components['dev'] = since_release
+			else:
+				prerelease_ref = prerelease_refs[prefix]
+				prerelease_version = prerelease_ref.get_commits_in_history(
+					since=release_tag)
+				components['prerelease'] = f'{prefix}{prerelease_version + 1}'
+				components['dev'] = since_prerelease
 		else:
 			components['dev'] = since_release
 		if post is not None:

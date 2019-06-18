@@ -69,8 +69,11 @@ def test_version(reference, version_stream):
 	logger.debug('The version of %s is %s', reference, version)
 	if version.prerelease is None:
 		count, tag_version, tag = reference.get_commits_since_tagged_version()
-		assert count is None
-		assert str(tag_version) == str(version)
+		if count is None:
+			assert str(tag_version) == str(version)
+		else:
+			assert count < reference.get_commits_in_history(
+				since=version_stream)
 	elif version_stream  == 'alpha_branch':
 		assert str(version.prerelease.category) == 'Category.ALPHA'
 	elif version_stream == 'beta_branch':
