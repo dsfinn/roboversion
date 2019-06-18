@@ -201,6 +201,13 @@ class Reference:
 					local=self.hash_abbreviation,
 				)
 			if since_prerelease > since_release:
+				logger.warning(
+					'%r is closer to release %s than any prerelease branch'
+					' (%s); omitting prerelease version component. Prerelease'
+					' branches may be misconfigured.',
+					self, base_version,
+					', '.join(repr(x) for x in prerelease_refs.values())
+				)
 				components['dev'] = since_release
 			else:
 				prerelease_ref = prerelease_refs[prefix]
