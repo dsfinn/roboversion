@@ -1,4 +1,8 @@
+import logging
+import shutil
 from pathlib import Path
+from subprocess import run, PIPE
+from tempfile import TemporaryDirectory
 from unittest import mock
 
 import pytest
@@ -7,11 +11,60 @@ from roboversion.git import logger as git_logger
 from roboversion.git import Reference
 from roboversion.version import Version
 
-@pytest.fixture
-def repository():
-	return Path(__file__).parent.joinpath('fixtures', 'test_repo')
 
-@pytest.fixture(params=('HEAD', 'feature_0', 'feature_1', 'release_1'))
+logger = logging.getLogger(__name__)
+
+
+REF_ORDER = (
+	('release_0', 'beta_0', 'alpha_0'),
+	('feature_0',),
+	('feature_1',),
+	('alpha_1',),
+	('beta_1', 'alpha_2'),
+	('release_1',),
+	('HEAD',)
+)
+
+
+@pytest.fixture(scope='module')
+def repository():
+	cleanup = False
+	try:
+		with TemporaryDirectory() as temp:
+			path = Path(temp).joinpath('test_repo')
+			path.mkdir()
+			def git_command(*args):
+				return run(
+					('git', *args),
+					cwd=str(path),
+					check=True,
+					stdout=PIPE,
+					stderr=PIPE,
+				)
+			git_command('init',)
+			test_filename = 'test_file'
+			for index, refs in enumerate(REF_ORDER):
+				message = f'Test commit {index}'
+				with open(path.joinpath(test_filename), 'w') as test_file:
+					test_file.write(f'Test commit {index}')
+				git_command('add', test_filename)
+				git_command('commit', '-m', f'"{message}"')
+				for ref in refs:
+					if ref == 'HEAD':
+						continue
+					git_command('branch', ref)
+				if index == 0:
+					git_command('tag', 'v1337.420.68')
+			git_command('tag', 'v1337.420.69')
+			yield path
+			cleanup = True
+	except PermissionError:
+		if not cleanup:
+			raise
+		logger.debug('Windows is failing to cleanup files again...')
+
+@pytest.fixture(
+	scope='module', params=('HEAD', 'feature_0', 'feature_1', 'release_1'))
 def ref(request, repository):
 	return Reference(repository_path=repository, name=request.param)
 
