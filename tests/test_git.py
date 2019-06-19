@@ -23,7 +23,7 @@ def references(request, repository_path):
 		x for x, _ in Reference.all_from_repository(path=repository_path))
 
 
-@fixture(params=('master',))
+@fixture(params=('HEAD',))
 def reference(request, repository_path):
 	return Reference(repository_path=repository_path, name=request.param)
 
@@ -72,8 +72,7 @@ def test_version(reference, version_stream):
 		if count is None:
 			assert str(tag_version) == str(version)
 		else:
-			assert count < reference.get_commits_in_history(
-				since=version_stream)
+			assert count == reference.get_commits_in_history(since=tag)
 	elif version_stream  == 'alpha_branch':
 		assert str(version.prerelease.category) == 'Category.ALPHA'
 	elif version_stream == 'beta_branch':
