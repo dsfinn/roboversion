@@ -62,9 +62,18 @@ class Reference:
 
 		:returns: int
 		"""
+		return int(self.hash_string, base=16)
+
+	@property
+	def hash_string(self):
+		"""
+		The hash string of the commit
+
+		:returns: str
+		"""
 		result = self._run_command(
 			'git', 'rev-list', '--max-count=1', self.name)
-		return int(result.strip(), base=16)
+		return result.strip()
 
 	@property
 	def hash_abbreviation(self):

@@ -44,7 +44,7 @@ def test_reference(repository_path, name):
 def test_hashes(references):
 	for reference in references:
 		hash_abbreviation = reference.hash_abbreviation
-		commit_hash = hex(reference.hash).lstrip('0x')
+		commit_hash = reference.hash_string
 		logger.debug('%s points at %s', reference, commit_hash)
 		logger.debug('hash abbreviated to %s', hash_abbreviation)
 		assert commit_hash.startswith(hash_abbreviation)
