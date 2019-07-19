@@ -17,19 +17,33 @@ cache:
     - .cache/pip
     - env/
 
+stages:
+  - test
+
 before_script:
   - python -V  # Print out python version for debugging
   - python -m venv env
   - source env/bin/activate
 
-test:
+unit_tests:
+  stage: test
   script:
     - pip install -r requirements-dev.txt
     - git config --global user.email "test_user@test_mail.test"
     - git config --global user.name test_name
-    - pytest -x --showlocals tests/ 
+    - pytest -x --showlocals tests/
+
+unit_tests_python36:
+  stage: test
+  image: python:3.6
+  script:
+    - pip install -r requirements-dev.txt
+    - git config --global user.email "test_user@test_mail.test"
+    - git config --global user.name test_name
+    - pytest -x --showlocals tests/
 
 run:
+  stage: test
   script:
     - pip install wheel
     - python setup.py bdist_wheel
