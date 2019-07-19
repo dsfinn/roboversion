@@ -246,7 +246,7 @@ class Reference:
 		:returns: str
 		"""
 		return check_output(
-			arguments, cwd=self.path, text=True, **kwargs)
+			arguments, cwd=self.path, universal_newlines=True, **kwargs)
 
 	@classmethod
 	def all_from_repository(cls, path=None):
@@ -265,7 +265,7 @@ class Reference:
 				'--format=%(refname:short),%(upstream:short)',
 			),
 			cwd=path,
-			text=True,
+			universal_newlines=True,
 		)
 		for line in result.splitlines():
 			line = line.strip()
