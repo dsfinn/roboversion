@@ -25,6 +25,7 @@ details = {
 		'Topic :: Software Development :: Version Control :: Git',
 		'Topic :: Utilities',
 	],
+	'entry_points': {'console_scripts': ['roboversion=roboversion:main']}
 }
 
 
