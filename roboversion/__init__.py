@@ -13,6 +13,7 @@ import logging
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
+from subprocess import CalledProcessError
 
 from roboversion.git import Reference
 
@@ -84,8 +85,7 @@ def main(*args):
 			' versions. By default, this will be the short hash of the commit.'
 		),
 	)
-	parser.add_argument(
-		'--log_level', default='INFO', help='The logging level')
+	parser.add_argument('--log_level', help='The logging level')
 	if not args:
 		args = sys.argv[1:]
 	arguments = parser.parse_args(args)
@@ -93,13 +93,25 @@ def main(*args):
 	local = arguments.local
 	if arguments.no_auto_local and local is Reference.AUTO_LOCAL:
 		local = None
-	version = get_version(
-		project_path=arguments.path,
-		target_ref=arguments.ref,
-		alpha_branch=arguments.alpha,
-		beta_branch=arguments.beta,
-		release_branch=arguments.release,
-		post=arguments.post,
-		local=local,
-	)
+	try:
+		version = get_version(
+			project_path=arguments.path,
+			target_ref=arguments.ref,
+			alpha_branch=arguments.alpha,
+			beta_branch=arguments.beta,
+			release_branch=arguments.release,
+			post=arguments.post,
+			local=local,
+		)
+	except CalledProcessError as error:
+		logger.error('A call to Git encountered an error')
+		logger.debug(error, exc_info=error)
+		print(
+			(
+				'Is the specified path a Git repository?'
+				' If so, does it contain any commits?'
+			),
+			file=sys.stderr,
+		)
+		return
 	print(version)
