@@ -42,17 +42,15 @@ unit_tests_python36:
     - git config --global user.name test_name
     - pytest -x --showlocals tests/
 
-run:
+build_package:
   stage: test
   script:
     - pip install wheel
-    - python setup.py bdist_wheel
-    # an alternative approach is to install and run:
-    - pip install dist/*
-    # run the command here
+    - python setup.py bdist_wheel sdist
   artifacts:
     paths:
-      - dist/*.whl
+      - dist/roboversion*.whl
+      - dist/roboversion*.tar.gz
 
 pages:
   script:
