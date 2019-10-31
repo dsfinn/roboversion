@@ -83,9 +83,25 @@ version = get_version()
 ```python
 from roboversion import get_version
 ...
-version = get_version(alpha_branch='develop')
+version = get_version(alpha_branch='origin/develop')
 ```
 
 ```bash
-$ python -m roboversion --alpha develop --beta beta --release candidate --no_auto_local --ref HEAD
+$ roboversion
+```
+
+```bash
+$ roboversion /path/to/repository
+```
+
+```bash
+$ roboversion --ref origin/master
+```
+
+```bash
+$ roboversion --alpha origin/develop --beta origin/beta --release origin/release --no_auto_local --ref HEAD
+```
+
+```bash
+$ python -m roboversion --alpha origin/develop --beta origin/beta --release origin/release --no_auto_local --ref HEAD
 ```
