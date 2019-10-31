@@ -55,11 +55,11 @@ build_package:
 pages:
   stage: test
   script:
+    - pip install .
     - pip install -r requirements-doc.txt
     - cd docs ; make html
     - mv _build/html/ ../public/
   artifacts:
     paths:
       - public
-  only:
-    - master
+  when: manual
