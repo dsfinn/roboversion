@@ -28,7 +28,7 @@ before_script:
 unit_tests:
   stage: test
   script:
-    - pip install -r requirements-dev.txt
+    - pip install -r requirements-test.txt
     - git config --global user.email "test_user@test_mail.test"
     - git config --global user.name test_name
     - pytest -x --showlocals tests/
@@ -37,7 +37,7 @@ unit_tests_python36:
   stage: test
   image: python:3.6
   script:
-    - pip install -r requirements-dev.txt
+    - pip install -r requirements-test.txt
     - git config --global user.email "test_user@test_mail.test"
     - git config --global user.name test_name
     - pytest -x --showlocals tests/
@@ -53,8 +53,9 @@ build_package:
       - dist/roboversion*.tar.gz
 
 pages:
+  stage: test
   script:
-    - pip install sphinx sphinx-rtd-theme
+    - pip install -r requirements-doc.txt
     - cd docs ; make html
     - mv _build/html/ ../public/
   artifacts:
