@@ -11,7 +11,7 @@ Postdevelopment and local version component specification are also supported.
 """
 import logging
 import sys
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 from pathlib import Path
 from subprocess import CalledProcessError
 
@@ -62,8 +62,10 @@ def main(*args):
 	Entrypoint for running the module directly
 	"""
 	parser = ArgumentParser()
-	parser.add_argument(
-		'--path', default=Path.cwd(), help='Path to Git project')
+	path_group = parser.add_mutually_exclusive_group()
+	path_group.add_argument(
+		'repository-path', nargs='?', help='Path to Git project')
+	path_group.add_argument('--path', help=SUPPRESS, type=_deprecated_path)
 	parser.add_argument(
 		'--ref', default='HEAD',
 		help='The Git ref of which to report the version',
@@ -93,9 +95,10 @@ def main(*args):
 	local = arguments.local
 	if arguments.no_auto_local and local is Reference.AUTO_LOCAL:
 		local = None
+	repository_path = arguments.repository_path or arguments.path
 	try:
 		version = get_version(
-			project_path=arguments.path,
+			project_path=repository_path,
 			target_ref=arguments.ref,
 			alpha_branch=arguments.alpha,
 			beta_branch=arguments.beta,
@@ -115,3 +118,10 @@ def main(*args):
 		)
 		return
 	print(version)
+
+def _deprecated_path(path):
+	logger.warning(
+		'The `--path` option is deprecated; use the positional'
+		' `repository_path`'
+	)
+	return path
