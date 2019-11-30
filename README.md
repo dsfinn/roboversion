@@ -41,7 +41,8 @@ Running this module, or its `get_version` function, will inspect the specified
 Git repository state and construct a corresponding PEP440-compliant version.
 
 Base releases are expected to be tagged as PEP440-compliant version strings.
-If no version tags exist, the default release will be generated from the date.
+If no version tags exist, the base version will be treated as `0.0.0`, and the
+resulting development version will be targeting release `0.0.1`.
 
 If prerelease branches are specified (e.g. alpha, beta, release candidate)
 the output version will reflect this information based on the closest ancestor

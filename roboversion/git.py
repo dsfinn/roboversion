@@ -166,7 +166,7 @@ class Reference:
 		except CalledProcessError as error:
 			if error.returncode == self._NO_TAG_RETURN_CODE:
 				since_release = self.get_commits_in_history()
-				base_version = Version.from_datetime()
+				base_version = Version.from_str('0.0.0')
 				release_tag = None
 			else:
 				raise error
