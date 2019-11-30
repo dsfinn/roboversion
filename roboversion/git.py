@@ -4,7 +4,7 @@ Modelling of Git refs for versioning
 import logging
 import re
 from pathlib import Path
-from subprocess import CalledProcessError, check_output
+from subprocess import CalledProcessError, run, PIPE
 
 from roboversion.version import PEP440_EXPRESSION, Version
 
@@ -245,8 +245,18 @@ class Reference:
 
 		:returns: str
 		"""
-		return check_output(
-			arguments, cwd=self.path, universal_newlines=True, **kwargs)
+		process = run(
+			arguments,
+			cwd=self.path,
+			stderr=PIPE,
+			stdout=PIPE,
+			universal_newlines=True,
+			**kwargs,
+		)
+		if process.stderr:
+			logger.debug(process.stderr)
+		process.check_returncode()
+		return process.stdout
 
 	@classmethod
 	def all_from_repository(cls, path=None):
@@ -258,16 +268,20 @@ class Reference:
 		"""
 		if path is None:
 			path = Path.cwd()
-		result = check_output(
+		process = run(
 			(
 				'git',
 				'for-each-ref',
 				'--format=%(refname:short),%(upstream:short)',
 			),
 			cwd=path,
+			stderr=PIPE,
+			stdout=PIPE,
 			universal_newlines=True,
 		)
-		for line in result.splitlines():
+		if process.stderr:
+			logger.debug(process.stderr)
+		for line in process.stdout.splitlines():
 			line = line.strip()
 			if not line:
 				continue
