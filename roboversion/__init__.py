@@ -11,7 +11,7 @@ Postdevelopment and local version component specification are also supported.
 """
 import logging
 import sys
-from argparse import ArgumentParser, SUPPRESS
+from argparse import Action, ArgumentParser, SUPPRESS
 from pathlib import Path
 from subprocess import CalledProcessError
 
@@ -64,7 +64,12 @@ def main(*args):
 	parser = ArgumentParser()
 	path_group = parser.add_mutually_exclusive_group()
 	path_group.add_argument(
-		'repository-path', nargs='?', help='Path to Git project')
+		'repository_path',
+		metavar='repository-path',
+		nargs='?',
+		help='Path to Git repository',
+		default=Path.cwd(),
+	)
 	path_group.add_argument('--path', help=SUPPRESS, type=_deprecated_path)
 	parser.add_argument(
 		'--ref', default='HEAD',
@@ -79,15 +84,29 @@ def main(*args):
 	parser.add_argument('--post', type=int, help='A post development version')
 	parser.add_argument(
 		'--local', default=Reference.AUTO_LOCAL, help='A local version tag')
-	parser.add_argument(
-		'--no_auto_local',
+	no_auto_local_group = parser.add_mutually_exclusive_group()
+	no_auto_local_group.add_argument(
+		'--no-auto-local',
 		action='store_true',
 		help=(
 			'Suppress automatic local version insertion on development'
 			' versions. By default, this will be the short hash of the commit.'
 		),
 	)
-	parser.add_argument('--log_level', help='The logging level')
+	no_auto_local_group.add_argument(
+		'--no_auto_local',
+		action=_DeprecatedNoLocalUnderscores,
+		help=SUPPRESS,
+		nargs=0,
+	)
+	log_level_group = parser.add_mutually_exclusive_group()
+	log_level_group.add_argument(
+		'--log-level',
+		choices=('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'),
+		help='The logging level',
+	)
+	log_level_group.add_argument(
+		'--log_level', help=SUPPRESS, type=_deprecated_log_level_underscores)
 	if not args:
 		args = sys.argv[1:]
 	arguments = parser.parse_args(args)
@@ -119,9 +138,23 @@ def main(*args):
 		return
 	print(version)
 
+
 def _deprecated_path(path):
 	logger.warning(
 		'The `--path` option is deprecated; use the positional'
-		' `repository_path`'
+		' `repository-path`'
 	)
 	return path
+
+
+def _deprecated_log_level_underscores(log_level):
+	logger.warning(
+		'`--log_level` is deprecated; use `--log-level` instead')
+	return log_level
+
+
+class _DeprecatedNoLocalUnderscores(Action):
+	def __call__(self, parser, namespace, values, option_string):
+		logger.warning(
+			'`--no_auto_local` is deprecated; use `--no-auto-local` instead')
+		setattr(namespace, 'no_auto_local', True)

@@ -100,9 +100,9 @@ $ roboversion --ref origin/master
 ```
 
 ```bash
-$ roboversion --alpha origin/develop --beta origin/beta --release origin/release --no_auto_local --ref HEAD
+$ roboversion --alpha origin/develop --beta origin/beta --release origin/release --no-auto-local --ref HEAD
 ```
 
 ```bash
-$ python -m roboversion --alpha origin/develop --beta origin/beta --release origin/release --no_auto_local --ref HEAD
+$ python -m roboversion --alpha origin/develop --beta origin/beta --release origin/release --no-auto-local --ref HEAD
 ```
