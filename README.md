@@ -3,6 +3,7 @@
 Automated project versioning based on Git repository state.
 
 [![pipeline status](https://gitlab.com/dsfinn/roboversion/badges/master/pipeline.svg)](https://gitlab.com/dsfinn/roboversion/commits/master)
+[![coverage report](https://gitlab.com/dsfinn/roboversion/badges/master/coverage.svg)](https://gitlab.com/dsfinn/roboversion/commits/master)
 
 ## Author
 
