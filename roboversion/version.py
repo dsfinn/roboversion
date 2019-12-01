@@ -58,7 +58,7 @@ class Release:
 		to zero.
 
 		:param int index: Position of the component to bump.
-		:param int increment: Amouny by which to increase specified component
+		:param int increment: Amount by which to increase specified component
 		:returns: Release
 		"""
 		if index is None:
@@ -74,6 +74,13 @@ class Release:
 
 	@classmethod
 	def from_date(cls, date=None):
+		"""
+		Get the version from the date. If no date is supplied, use the current
+		UTC date.
+
+		:param datetime.date date: The date
+		:returns: Release
+		"""
 		if date is None:
 			date = datetime.utcnow().date()
 		components = date.timetuple()[:3]
@@ -82,6 +89,9 @@ class Release:
 
 	@classmethod
 	def from_datetime(cls, time=None):
+		"""
+		Deprecated; use from_date
+		"""
 		logger.warning(
 			'%s.%s is deprecated; use %s.%s instead',
 			cls.__name__,
@@ -314,7 +324,21 @@ class Version:
 		raise ValueError(f'{field!r} is not a bumpable version field')
 
 	@classmethod
+	def from_date(cls, date=None, **kwargs):
+		"""
+		Get the version from the date. If no date is supplied, use the current
+		UTC date.
+
+		:param datetime.date date: The date
+		:returns: Version
+		"""
+		return cls(release=Release.from_date(date), **kwargs)
+
+	@classmethod
 	def from_datetime(cls, time=None, **kwargs):
+		"""
+		Deprecated; use from_date
+		"""
 		logger.warning(
 			'%s.%s is deprecated; use %s.%s instead',
 			cls.__name__,
@@ -323,10 +347,6 @@ class Version:
 			cls.from_date.__name__,
 		)
 		date = None if time is None else time.date()
-		return cls(release=Release.from_date(date), **kwargs)
-
-	@classmethod
-	def from_date(cls, date=None, **kwargs):
 		return cls(release=Release.from_date(date), **kwargs)
 
 	@classmethod

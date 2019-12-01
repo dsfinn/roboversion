@@ -6,14 +6,10 @@ import re
 from pathlib import Path
 from subprocess import CalledProcessError, run, PIPE
 
-from roboversion.version import PEP440_EXPRESSION, Version, Prerelease
+from roboversion.version import Version, Prerelease
 
 
 logger = logging.getLogger(__name__)
-
-
-VERSION_TAG_EXPRESSION = re.compile(
-	f'v?(?P<version>{PEP440_EXPRESSION.pattern})')
 
 
 class Reference:
