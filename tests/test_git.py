@@ -1,19 +1,22 @@
 import logging
 from pathlib import Path
+from unittest import mock
 
 from hypothesis import assume, given, example, settings
 from hypothesis.strategies import (
 	composite, builds, data, deferred, dictionaries, just, lists, none, text)
-from pytest import fixture
+from pytest import fixture, raises
 
-from roboversion.git import Reference
+from roboversion.git import Reference, CalledProcessError
 
 
 logger = logging.getLogger(__name__)
 
 
-@fixture
+@fixture(params=range(2))
 def repository_path(request):
+	if request.param < 1:
+		return None
 	return Path.cwd()
 
 
@@ -43,6 +46,7 @@ def test_reference(repository_path, name):
 
 def test_hashes(references):
 	for reference in references:
+		hex(reference.hash)
 		hash_abbreviation = reference.hash_abbreviation
 		commit_hash = reference.hash_string
 		logger.debug('%s points at %s', reference, commit_hash)
@@ -84,3 +88,21 @@ def test_version(reference, version_stream):
 		)
 	else:
 		assert version.dev is not None
+
+
+def test_failure(reference):
+	def raise_error(*args, **kwargs):
+		raise CalledProcessError(128, str((args, kwargs)))
+	def raise_bad_error(*args, **kwargs):
+		raise CalledProcessError(-1, str((args, kwargs)))
+	with mock.patch('roboversion.git.Reference.get_commits_since_tagged_version') as commits:
+		commits.side_effect = raise_error
+		reference.get_version()
+	with mock.patch('roboversion.git.Reference.get_commits_since_tagged_version') as commits:
+		commits.side_effect = raise_bad_error
+		with raises(CalledProcessError):
+			reference.get_version()
+	with mock.patch('roboversion.git.Reference._run_command') as run:
+		run.side_effect = raise_error
+		with raises(CalledProcessError):
+			reference.get_version()

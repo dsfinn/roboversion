@@ -7,9 +7,10 @@ from unittest import mock
 
 import pytest
 
+from roboversion import get_version, main
 from roboversion.git import logger as git_logger
 from roboversion.git import Reference
-from roboversion.version import Version
+from roboversion.version import Version, Prerelease
 
 
 logger = logging.getLogger(__name__)
@@ -56,6 +57,7 @@ def repository():
 				if index == 0:
 					git_command('tag', 'v1337.420.68')
 			git_command('tag', 'v1337.420.69')
+			git_command('tag', 'random_tag')
 			yield path
 			cleanup = True
 	except PermissionError:
@@ -119,9 +121,11 @@ def known_version(ref, alpha_branch, beta_branch, candidate_branch):
 			components['local'] = ref.hash_abbreviation
 			return Version(**components)
 		if distance == 0:
-			components['prerelease'] = f'{prefix}{positions[prefix]}'
+			components['prerelease'] = Prerelease.from_str(
+				f'{prefix}{positions[prefix]}')
 			return Version(**components)
-		components['prerelease'] = f'{prefix}{positions[prefix] + 1}'
+		components['prerelease'] = Prerelease.from_str(
+			f'{prefix}{positions[prefix] + 1}')
 		components['dev'] = distance
 	else:
 		components['dev'] = ref_position
@@ -132,8 +136,10 @@ def known_version(ref, alpha_branch, beta_branch, candidate_branch):
 def test_version(
 		ref, alpha_branch, beta_branch, candidate_branch, known_version):
 	with mock.patch('roboversion.git.logger.warning', autospec=True) as warn:
-		version = ref.get_version(
-			candidate_branch=candidate_branch,
+		version = get_version(
+			project_path=ref.path,
+			target_ref=str(ref),
+			release_branch=candidate_branch,
 			beta_branch=beta_branch,
 			alpha_branch=alpha_branch,
 		)
@@ -147,3 +153,12 @@ def test_version(
 			else:
 				assert beta_branch == 'beta_1'
 				assert alpha_branch in ('alpha_0', 'alpha_1')
+		args = ['--ref', str(ref)]
+		if candidate_branch:
+			args.extend(('--release', candidate_branch))
+		if beta_branch:
+			args.extend(('--beta', beta_branch))
+		if alpha_branch:
+			args.extend(('--alpha', alpha_branch))
+		args.append(str(ref.path))
+		main(*args)
