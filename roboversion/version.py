@@ -25,25 +25,28 @@ class Release:
 	"""
 	A release version; e.g. 6.2.8
 	"""
-	EXPRESSION = re.compile(r'(?P<epoch>\d+!)?(?P<components>\d+(\.\d+)*)')
+	EXPRESSION = re.compile(
+		r'(?P<components>\d+(\.\d+)*)', flags=re.ASCII)
 
 	def __init__(self, components):
 		"""
 		:param iterable components: An iterable of non-negative integers
 		"""
-		try:
-			iter(components)
-		except TypeError:
-			components = (components,)
+		if not components:
+			raise ValueError('components cannot be empty')
+		self.components = tuple(int(x) for x in components)
 		bad_values = []
-		self.components = tuple(int(x) for x in components) 
 		for index, component in enumerate(self.components):
 			if component < 0:
 				bad_values.append(f'{component!r} (index {index})')
 		if bad_values:
 			raise ValueError(
-				'components must consist of non-negative integers;'
+				'Release components must consist of non-negative integers;'
 				f' bad values are {", ".join(bad_values)}')
+		logger.debug('Constructed release %s from %r', self, components)
+
+	def __iter__(self):
+		return iter(self.components)
 
 	def __str__(self):
 		return '.'.join(str(x) for x in self.components)
@@ -70,11 +73,24 @@ class Release:
 		return Release(components=new_components)
 
 	@classmethod
-	def from_datetime(cls, time=None):
-		if time is None:
-			time = datetime.utcnow()
-		components = time.utctimetuple()[:3]
+	def from_date(cls, date=None):
+		if date is None:
+			date = datetime.utcnow().date()
+		components = date.timetuple()[:3]
+		logger.debug('components %r from date %s', components, date)
 		return cls(components=components)
+
+	@classmethod
+	def from_datetime(cls, time=None):
+		logger.warning(
+			'%s.%s is deprecated; use %s.%s instead',
+			cls.__name__,
+			cls.from_datetime.__name__,
+			cls.__name__,
+			cls.from_date.__name__,
+		)
+		date = None if time is None else time.date()
+		return cls.from_date(date=date)
 
 	@classmethod
 	def from_str(cls, string):
@@ -85,6 +101,7 @@ class Release:
 		:returns: Release
 		"""
 		match = cls.EXPRESSION.fullmatch(string.strip())
+		logger.debug('match %r from string %r', match, string)
 		return cls(components=match['components'].split('.'))
 
 
@@ -105,7 +122,7 @@ class Prerelease:
 			r'(?P<alpha>a(lpha)?)'
 			r'|(?P<beta>b(eta)?)'
 			r'|(?P<release_candidate>((r?c)|(pre(view)?)))'
-		r')([.-_]?(?P<value>\d+))?',
+		r')([.\-_]?(?P<value>\d+))?',
 		flags=re.IGNORECASE,
 	)
 
@@ -120,7 +137,7 @@ class Prerelease:
 		:param Prerelease.Category category: A prerelease category
 		:param int value: A non-negative integer
 		"""
-		self.category = category
+		self.category = self.Category(category)
 		self.value = value
 
 	def __str__(self):
@@ -146,13 +163,12 @@ class Prerelease:
 		:returns: Prerelease
 		"""
 		match = cls.EXPRESSION.fullmatch(string.strip())
+		if not match:
+			raise ValueError(f'{string!r} does not contain a valid prerelease')
 		for name in 'alpha', 'beta', 'release_candidate':
 			if match[name]:
 				category = Prerelease.Category[name.upper()]
 				break
-		else:
-			raise ValueError(
-				f'{string!r} does not contain a valid prerelease category')
 		optionals = {}
 		if match['value'] is not None:
 			optionals['value'] = int(match['value'])
@@ -172,6 +188,9 @@ class LocalVersion:
 			comprising non-negative integers or alphanumeric character strings.
 		"""
 		self.segments = tuple(segments)
+
+	def __iter__(self):
+		return iter(self.segments)
 
 	def __str__(self):
 		return '.'.join(str(x) for x in self.segments)
@@ -195,13 +214,13 @@ class LocalVersion:
 				segments.append(segment)
 		return cls(segments=segments)
 
-
 class Version:
 	"""
 	A PEP440-compliant version
 	"""
 	EXPRESSION = re.compile(
-		r'v?(?P<release>' + Release.EXPRESSION.pattern + r')' + r'('
+		r'v?((?P<epoch>\d+)!)?'
+		r'(?P<release>' + Release.EXPRESSION.pattern + r')' + r'('
 			r'[.-_]?(?P<prerelease>' + Prerelease.EXPRESSION.pattern + r'))?'
 			r'((([.-_]?(post|r(ev)?)(?P<post>\d+)?)|-(?P<implicit_post>\d+)))?'
 			r'([.-_]?dev(?P<dev>\d+))?'
@@ -228,18 +247,22 @@ class Version:
 		:param str local: The local version string
 		"""
 		if epoch < 0:
-			raise ValueError
-		if isinstance(release, str):
-			release = Release.from_str(release)
-		if isinstance(prerelease, str):
-			prerelease = Prerelease.from_str(prerelease)
+			raise ValueError('epoch must be a non-negative integer')
 		if post is not None and post < 0:
 			raise ValueError('post must be a non-negative integer')
 		if dev is not None and dev < 0:
 			raise ValueError('dev must be a non-negative integer')
-		if isinstance(local, str):
-			local = LocalVersion.from_str(local)
-		self.release = release
+		release = Release(components=release)
+		if prerelease is not None:
+			try:
+				prerelease = Prerelease(
+					category=prerelease.category, value=prerelease.value)
+			except AttributeError:
+				raise TypeError(f'invalid prerelease value: {prerelease!r}')
+		if local is not None:
+			local = LocalVersion(segments=local)
+		self.release = Release(components=release)
+		self.epoch = epoch
 		self.prerelease = prerelease
 		self.post = post
 		self.dev = dev
@@ -249,7 +272,10 @@ class Version:
 		return f'{self.__class__.__name__}.from_str({str(self)!r})'
 
 	def __str__(self):
-		strings = [str(self.release)]
+		strings = []
+		if self.epoch:
+			strings.append(f'{self.epoch}!')
+		strings.append(str(self.release))
 		if self.prerelease:
 			strings.append(str(self.prerelease))
 		if self.post:
@@ -260,7 +286,7 @@ class Version:
 			strings.append(f'+{self.local}')
 		return ''.join(strings)
 
-	def get_bumped(self, release_index=None, field='release', increment=1):
+	def get_bumped(self, *, field='release', release_index=None, increment=1):
 		"""
 		Get the Version corresponding to this Version bumped according to the
 		specified parameters.
@@ -275,24 +301,33 @@ class Version:
 				index=release_index, increment=increment)
 			return self.__class__(release=release)
 		if release_index is not None:
-			raise ValueError(
+			raise TypeError(
 				"release index can only be specified for a 'release' bump")
 		if field == 'prerelease':
 			prerelease = self.prerelease.get_bumped(increment=increment)
 			return self.__class__(release=self.release, prerelease=prerelease)
-		optionals = {'prerelease': self.prerelease}
-		if field == 'post':
-			optionals['post'] = self.post + increment
-			return self.__class__(release=release, **optionals)
-		optionals['post'] = self.post
-		if field == 'dev':
-			optionals['dev'] = self.dev + increment
-			return self.__class__(release=self.release, **optionals)
+		optionals = {}
+		if field in ('post', 'dev'):
+			optionals = {field: getattr(self, field, 0)}
+			return self.__class__(
+				release=self.release, prerelease=self.prerelease, **optionals)
 		raise ValueError(f'{field!r} is not a bumpable version field')
 
 	@classmethod
 	def from_datetime(cls, time=None, **kwargs):
-		return cls(release=Release.from_datetime(time), **kwargs)
+		logger.warning(
+			'%s.%s is deprecated; use %s.%s instead',
+			cls.__name__,
+			cls.from_datetime.__name__,
+			cls.__name__,
+			cls.from_date.__name__,
+		)
+		date = None if time is None else time.date()
+		return cls(release=Release.from_date(date), **kwargs)
+
+	@classmethod
+	def from_date(cls, date=None, **kwargs):
+		return cls(release=Release.from_date(date), **kwargs)
 
 	@classmethod
 	def from_str(cls, string):
@@ -308,6 +343,8 @@ class Version:
 				f'{string!r} is not a PEP440-compliant public version string')
 		release = Release.from_str(match['release'])
 		optionals = {}
+		if match['epoch']:
+			optionals['epoch'] = int(match['epoch'])
 		if match['prerelease']:
 			optionals['prerelease'] = Prerelease.from_str(match['prerelease'])
 		if match['post']:

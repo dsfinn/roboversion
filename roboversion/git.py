@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from subprocess import CalledProcessError, run, PIPE
 
-from roboversion.version import PEP440_EXPRESSION, Version
+from roboversion.version import PEP440_EXPRESSION, Version, Prerelease
 
 
 logger = logging.getLogger(__name__)
@@ -187,7 +187,8 @@ class Reference:
 			if branch is None:
 				continue
 			if branch_name == str(branch):
-				components['prerelease'] = f'{prefix}{since_release}'
+				components['prerelease'] = Prerelease.from_str(
+					f'{prefix}{since_release}')
 				return Version(**components)
 			prerelease_refs[prefix] = Reference(
 				repository_path=self.path, name=branch)
@@ -224,7 +225,8 @@ class Reference:
 				prerelease_ref = prerelease_refs[prefix]
 				prerelease_version = prerelease_ref.get_commits_in_history(
 					since=release_tag)
-				components['prerelease'] = f'{prefix}{prerelease_version + 1}'
+				components['prerelease'] = Prerelease.from_str(
+					f'{prefix}{prerelease_version + 1}')
 				components['dev'] = since_prerelease
 		else:
 			components['dev'] = since_release
