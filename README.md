@@ -2,6 +2,8 @@
 
 Automated project versioning based on Git repository state.
 
+[![pipeline status](https://gitlab.com/dsfinn/roboversion/badges/master/pipeline.svg)](https://gitlab.com/dsfinn/roboversion/commits/master)
+
 ## Author
 
 David Finn: dsfinn@gmail.com
