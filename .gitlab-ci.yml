@@ -31,7 +31,8 @@ unit_tests:
     - pip install -r requirements-test.txt
     - git config --global user.email "test_user@test_mail.test"
     - git config --global user.name test_name
-    - pytest -x --showlocals tests/
+    - pytest -x --showlocals --cov=roboversion tests/
+  coverage: /^TOTAL.+?(\d+\%)$/
 
 unit_tests_python36:
   extends: unit_tests
