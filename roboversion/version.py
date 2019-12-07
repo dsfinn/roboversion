@@ -51,6 +51,9 @@ class Release:
 	def __str__(self):
 		return '.'.join(str(x) for x in self.components)
 
+	def __repr__(self):
+		return f'{self.__class__.__name__}(components={self.components!r})'
+
 	def get_bumped(self, index=None, increment=1):
 		"""
 		Obtain a new release version by bumping the component at the specified
@@ -153,6 +156,12 @@ class Prerelease:
 	def __str__(self):
 		return f'{self._PREFIXES[self.category]}{self.value}'
 
+	def __repr__(self):
+		return (
+			f'{self.__class__.__name__}'
+			f'(category={self.category!r}, value={self.value!r})'
+		)
+
 	def get_bumped(self, increment=1):
 		"""
 		Create a new prerelease version by bumping this one by the specified
@@ -204,6 +213,9 @@ class LocalVersion:
 
 	def __str__(self):
 		return '.'.join(str(x) for x in self.segments)
+
+	def __repr__(self):
+		return f'{self.__class__.__name__}(segments={self.segments!r})'
 
 	@classmethod
 	def from_str(cls, string):
@@ -279,7 +291,16 @@ class Version:
 		self.local = local
 
 	def __repr__(self):
-		return f'{self.__class__.__name__}.from_str({str(self)!r})'
+		return (
+			f'{self.__class__.__name__}'
+			f'(release={self.release!r},'
+			f' epoch={self.epoch!r},'
+			f' prerelease={self.prerelease!r},'
+			f' post={self.post!r},'
+			f' dev={self.dev!r},'
+			f' local={self.local!r}'
+			f')'
+		)
 
 	def __str__(self):
 		strings = []
