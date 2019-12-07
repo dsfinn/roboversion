@@ -270,7 +270,7 @@ class Version:
 			except AttributeError:
 				raise TypeError(f'invalid prerelease value: {prerelease!r}')
 		if local is not None:
-			local = LocalVersion(segments=local)
+			local = LocalVersion.from_str(local)
 		self.release = Release(components=release)
 		self.epoch = epoch
 		self.prerelease = prerelease
