@@ -30,7 +30,7 @@ from roboversion import get_version
 ...
 setup(
 	...
-	version=str(get_version(alpha_branch='develop')),
+	version=str(get_version(alpha_branch='origin/my_alpha_branch')),
 	...
 )
 ```
@@ -87,7 +87,7 @@ version = get_version()
 ```python
 from roboversion import get_version
 ...
-version = get_version(alpha_branch='origin/develop')
+version = get_version(alpha_branch='origin/my_alpha_branch')
 ```
 
 ```bash
@@ -103,9 +103,9 @@ $ roboversion --ref origin/master
 ```
 
 ```bash
-$ roboversion --alpha origin/develop --beta origin/beta --release origin/release --no-auto-local --ref HEAD
+$ roboversion --alpha origin/alpha --beta origin/beta --release origin/release --no-auto-local --ref HEAD
 ```
 
 ```bash
-$ python -m roboversion --alpha origin/develop --beta origin/beta --release origin/release --no-auto-local --ref HEAD
+$ python -m roboversion --alpha origin/alpha --beta origin/beta --release origin/release --no-auto-local --ref HEAD
 ```
