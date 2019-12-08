@@ -268,22 +268,7 @@ class Version:
 		:param int dev: The development version
 		:param str local: The local version string
 		"""
-		if epoch < 0:
-			raise ValueError('epoch must be a non-negative integer')
-		if post is not None and post < 0:
-			raise ValueError('post must be a non-negative integer')
-		if dev is not None and dev < 0:
-			raise ValueError('dev must be a non-negative integer')
-		release = Release(components=release)
-		if prerelease is not None:
-			try:
-				prerelease = Prerelease(
-					category=prerelease.category, value=prerelease.value)
-			except AttributeError:
-				raise TypeError(f'invalid prerelease value: {prerelease!r}')
-		if local is not None:
-			local = LocalVersion.from_str(local)
-		self.release = Release(components=release)
+		self.release = release
 		self.epoch = epoch
 		self.prerelease = prerelease
 		self.post = post
@@ -316,6 +301,85 @@ class Version:
 		if self.local:
 			strings.append(f'+{self.local}')
 		return ''.join(strings)
+
+	@property
+	def release(self):
+		return self._release
+
+	@release.setter
+	def release(self, value):
+		self._release = Release(components=value)
+
+	@property
+	def epoch(self):
+		return self._epoch
+
+	@epoch.setter
+	def epoch(self, value):
+		if value is None:
+			self._epoch = None
+			return
+		if value < 0:
+			raise ValueError('epoch must be a non-negative integer')
+		self._epoch = value
+
+	@property
+	def post(self):
+		return self._post
+
+	@post.setter
+	def post(self, value):
+		if value is None:
+			self._post = None
+			return
+		if value < 0:
+			raise ValueError('post must be a non-negative integer')
+		self._post = value
+
+	@property
+	def dev(self):
+		return self._dev
+
+	@dev.setter
+	def dev(self, value):
+		if value is None:
+			self._dev = None
+			return
+		if value < 0:
+			raise ValueError('dev must be a non-negative integer')
+		self._dev = value
+
+	@property
+	def prerelease(self):
+		return self._prerelease
+
+	@prerelease.setter
+	def prerelease(self, value):
+		if value is None:
+			self._prerelease = None
+			return
+		if isinstance(value, str):
+			self._prerelease = Prerelease.from_str(value)
+			return
+		try:
+			self._prerelease = Prerelease(
+				category=value.category, value=value.value)
+		except AttributeError:
+			raise TypeError(f'{value!r} is not a valid prerelease')
+
+	@property
+	def local(self):
+		return self._local
+
+	@local.setter
+	def local(self, value):
+		if value is None:
+			self._local = None
+			return
+		if isinstance(value, str):
+			self._local = LocalVersion.from_str(value)
+			return
+		self._local = LocalVersion(segments=value)
 
 	def get_bumped(self, *, field='release', release_index=None, increment=1):
 		"""
