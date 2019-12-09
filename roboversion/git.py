@@ -167,7 +167,8 @@ class Reference:
 		if since_release is None:
 			return base_version
 		components = {
-			'release': base_version.get_bumped(release_bump_index).release
+			'epoch': base_version.epoch,
+			'release': base_version.get_bumped(release_bump_index).release,
 		}
 		category_branches = {
 			Version.PrereleaseCategory.ALPHA: alpha_branch,
