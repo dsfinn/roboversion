@@ -84,12 +84,12 @@ class Version:
 		:param int dev: The development version
 		:param str local: The local version string
 		"""
-		self.epoch = epoch
-		self.release = release
-		self.prerelease = prerelease
-		self.post = post
-		self.dev = dev
-		self.local = local
+		self._set_epoch(epoch)
+		self._set_release(release)
+		self._set_prerelease(prerelease)
+		self._set_post(post)
+		self._set_dev(dev)
+		self._set_local(local)
 
 	def __repr__(self):
 		return (
@@ -123,88 +123,25 @@ class Version:
 	def epoch(self):
 		return self._epoch
 
-	@epoch.setter
-	def epoch(self, value):
-		if value is None:
-			self._epoch = None
-			return
-		if value < 0:
-			raise ValueError('epoch must be a non-negative integer')
-		self._epoch = int(value)
-
 	@property
 	def release(self):
 		return self._release
-
-	@release.setter
-	def release(self, value):
-		if not value:
-			raise ValueError('Release components cannot be empty')
-		components = tuple(int(x) for x in value)
-		bad_values = []
-		for index, component in enumerate(components):
-			if component < 0:
-				bad_values.append(f'{component!r} (index {index})')
-		if bad_values:
-			raise ValueError(
-				'Release components must consist of non-negative integers;'
-				f' bad values are {", ".join(bad_values)}')
-		self._release = components
 
 	@property
 	def prerelease(self):
 		return self._prerelease
 
-	@prerelease.setter
-	def prerelease(self, value):
-		if value is None:
-			self._prerelease = None
-			return
-		category, value = value
-		category = self.PrereleaseCategory(category)
-		if value < 0:
-			raise ValueError('Prerelease value must be a non-negative integer')
-		self._prerelease = (category, int(value))
-
 	@property
 	def post(self):
 		return self._post
-
-	@post.setter
-	def post(self, value):
-		if value is None:
-			self._post = None
-			return
-		if value < 0:
-			raise ValueError('post must be a non-negative integer')
-		self._post = int(value)
 
 	@property
 	def dev(self):
 		return self._dev
 
-	@dev.setter
-	def dev(self, value):
-		if value is None:
-			self._dev = None
-			return
-		if value < 0:
-			raise ValueError('dev must be a non-negative integer')
-		self._dev = int(value)
-
 	@property
 	def local(self):
 		return self._local
-
-	@local.setter
-	def local(self, value):
-		if value is None:
-			self._local = None
-			return
-		if not self.LOCAL_VERSION_EXPRESSION.fullmatch(value):
-			raise ValueError(
-				f'{value!r} is not a valid local version specifier')
-		self._local = '.'.join(self._SEPARATOR_EXPRESSION.split(value))
 
 	def get_bumped(self, index=None, increment=1):
 		"""
@@ -254,7 +191,7 @@ class Version:
 		if not match:
 			raise ValueError(
 				f'{string!r} is not a PEP440-compliant public version string')
-		release = match['release'].split('.')
+		release = tuple(int(x) for x in match['release'].split('.'))
 		optionals = {}
 		if match['epoch']:
 			optionals['epoch'] = int(match['epoch'])
@@ -275,3 +212,57 @@ class Version:
 		if match['local']:
 			optionals['local'] = match['local']
 		return cls(release=release, **optionals)
+
+	def _set_epoch(self, epoch):
+		if epoch < 0:
+			raise ValueError('epoch must be a non-negative integer')
+		self._epoch = int(epoch)
+
+	def _set_release(self, release):
+		release = tuple(release)
+		if not release:
+			raise ValueError('Release components cannot be empty')
+		bad_values = []
+		for index, component in enumerate(release):
+			if component < 0:
+				bad_values.append(f'{component!r} (index {index})')
+		if bad_values:
+			raise ValueError(
+				'Release components must consist of non-negative integers;'
+				f' bad values are {", ".join(bad_values)}')
+		self._release = tuple(int(x) for x in release)
+
+	def _set_prerelease(self, prerelease):
+		if prerelease is None:
+			self._prerelease = None
+			return
+		category, value = prerelease
+		category = self.PrereleaseCategory(category)
+		if value < 0:
+			raise ValueError('Prerelease value must be a non-negative integer')
+		self._prerelease = (category, int(value))
+
+	def _set_post(self, post):
+		if post is None:
+			self._post = None
+			return
+		if post < 0:
+			raise ValueError('post must be a non-negative integer')
+		self._post = int(post)
+
+	def _set_dev(self, dev):
+		if dev is None:
+			self._dev = None
+			return
+		if dev < 0:
+			raise ValueError('dev must be a non-negative integer')
+		self._dev = int(dev)
+
+	def _set_local(self, local):
+		if local is None:
+			self._local = None
+			return
+		if not self.LOCAL_VERSION_EXPRESSION.fullmatch(local):
+			raise ValueError(
+				f'{local!r} is not a valid local version specifier')
+		self._local = '.'.join(self._SEPARATOR_EXPRESSION.split(local))
