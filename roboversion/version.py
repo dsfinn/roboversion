@@ -26,6 +26,9 @@ class Version:
 	"""
 	A PEP440-compliant version
 	"""
+	__slots__ = (
+		'_epoch', '_release', '_prerelease', '_post', '_dev', '_local')
+
 	class PrereleaseCategory(enum.IntEnum):
 		"""
 		Types of prerelease versions
