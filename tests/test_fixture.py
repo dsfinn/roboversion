@@ -10,7 +10,7 @@ import pytest
 from roboversion import get_version, main
 from roboversion.git import logger as git_logger
 from roboversion.git import Reference
-from roboversion.version import Version, Prerelease
+from roboversion.version import Version
 
 
 logger = logging.getLogger(__name__)
@@ -108,24 +108,22 @@ def known_version(ref, alpha_branch, beta_branch, candidate_branch):
 		if ref_name in refs:
 			ref_position = index
 		if alpha_branch in refs:
-			positions['a'] = index
+			positions[Version.PrereleaseCategory.ALPHA] = index
 		if beta_branch in refs:
-			positions['b'] = index
+			positions[Version.PrereleaseCategory.BETA] = index
 		if candidate_branch in refs:
-			positions['rc'] = index
+			positions[Version.PrereleaseCategory.RELEASE_CANDIDATE] = index
 	if positions:
 		distances = {x: ref_position - y for x, y in positions.items()}
-		prefix, distance = min(distances.items(), key=lambda x: x[1])
+		category, distance = min(distances.items(), key=lambda x: x[1])
 		if distance < 0:
 			components['dev'] = ref_position
 			components['local'] = ref.hash_abbreviation
 			return Version(**components)
 		if distance == 0:
-			components['prerelease'] = Prerelease.from_str(
-				f'{prefix}{positions[prefix]}')
+			components['prerelease'] = (category, positions[category])
 			return Version(**components)
-		components['prerelease'] = Prerelease.from_str(
-			f'{prefix}{positions[prefix] + 1}')
+		components['prerelease'] = (category, positions[category] + 1)
 		components['dev'] = distance
 	else:
 		components['dev'] = ref_position

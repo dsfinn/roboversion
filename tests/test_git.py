@@ -8,6 +8,7 @@ from hypothesis.strategies import (
 from pytest import fixture, raises
 
 from roboversion.git import Reference, CalledProcessError
+from roboversion.version import Version
 
 
 logger = logging.getLogger(__name__)
@@ -78,13 +79,13 @@ def test_version(reference, version_stream):
 		else:
 			assert count == reference.get_commits_in_history(since=tag)
 	elif version_stream  == 'alpha_branch':
-		assert str(version.prerelease.category) == 'Category.ALPHA'
+		assert version.prerelease[0] == Version.PrereleaseCategory.ALPHA
 	elif version_stream == 'beta_branch':
-		assert str(version.prerelease.category) == 'Category.BETA'
+		assert version.prerelease[0] == Version.PrereleaseCategory.BETA
 	elif version_stream == 'candidate_branch':
 		assert (
-			str(version.prerelease.category)
-			== 'Category.RELEASE_CANDIDATE'
+			version.prerelease[0]
+			== Version.PrereleaseCategory.RELEASE_CANDIDATE
 		)
 	else:
 		assert version.dev is not None

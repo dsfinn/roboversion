@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from subprocess import CalledProcessError, run, PIPE
 
-from roboversion.version import Version, Prerelease
+from roboversion.version import Version
 
 
 logger = logging.getLogger(__name__)
@@ -169,32 +169,33 @@ class Reference:
 		if since_release is None:
 			return base_version
 		components = {
-			'release': base_version.release.get_bumped(release_bump_index)
+			'release': base_version.get_bumped(release_bump_index).release
 		}
-		prerelease_prefixes = {
-			'a': alpha_branch,
-			'b': beta_branch,
-			'rc': candidate_branch,
+		category_branches = {
+			Version.PrereleaseCategory.ALPHA: alpha_branch,
+			Version.PrereleaseCategory.BETA: beta_branch,
+			Version.PrereleaseCategory.RELEASE_CANDIDATE: candidate_branch,
 		}
 		branch_name = self.branch.name
 		logger.debug('branch name: %r', branch_name)
 		prerelease_refs = {}
-		for prefix, branch in prerelease_prefixes.items():
+		for category, branch in category_branches.items():
 			if branch is None:
 				continue
-			if branch_name == str(branch):
-				components['prerelease'] = Prerelease.from_str(
-					f'{prefix}{since_release}')
+			category_ref = Reference(
+				repository_path=self.path, name=str(branch))
+			if self.hash == category_ref.hash:
+				components['prerelease'] = (category, since_release)
 				return Version(**components)
-			prerelease_refs[prefix] = Reference(
-				repository_path=self.path, name=branch)
+			prerelease_refs[category] = category_ref
+
 		logger.debug('prerelease_refs: %r', prerelease_refs)
 		if prerelease_refs:
 			distances = {
 				x: self.get_commits_in_history(since=y)
 				for x, y in prerelease_refs.items()
 			}
-			prefix, since_prerelease = min(
+			category, since_prerelease = min(
 				distances.items(), key=lambda x: x[1])
 			if since_prerelease == 0:
 				components['dev'] = since_release
@@ -218,11 +219,10 @@ class Reference:
 				)
 				components['dev'] = since_release
 			else:
-				prerelease_ref = prerelease_refs[prefix]
+				prerelease_ref = prerelease_refs[category]
 				prerelease_version = prerelease_ref.get_commits_in_history(
 					since=release_tag)
-				components['prerelease'] = Prerelease.from_str(
-					f'{prefix}{prerelease_version + 1}')
+				components['prerelease'] = (category, prerelease_version + 1)
 				components['dev'] = since_prerelease
 		else:
 			components['dev'] = since_release
