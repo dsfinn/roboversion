@@ -27,13 +27,12 @@ def get_version(
 		alpha_branch=None,
 		beta_branch=None,
 		release_branch=None,
-		post=None,
 		local=Reference.AUTO_LOCAL,
 ):
 	"""
 	Get the Version corresponding to the specified Git ref at the specified
-	repository path. Gitflow prerelease branches, postdevelopment components,
-	and local version strings can also be specified.
+	repository path. Gitflow prerelease branches, and local version strings can
+	also be specified.
 	
 	If a local version string is not specified, development versions will
 	be locally versioned to the abbreviated hash of the ref commit by default.
@@ -44,7 +43,6 @@ def get_version(
 	:param str alpha_branch: The alpha prerelease branch
 	:param str beta_branch: The beta prerelease branch
 	:param str release_branch: The release candidate branch
-	:param int post: The postdevelopment version
 	:param str local: The local version string
 	:returns: Version
 	"""
@@ -53,7 +51,6 @@ def get_version(
 		candidate_branch=release_branch,
 		beta_branch=beta_branch,
 		alpha_branch=alpha_branch,
-		post=post,
 		local=local,
 	)
 
@@ -81,7 +78,6 @@ def main(*args):
 		'--beta', help='The beta release branch (if any)')
 	parser.add_argument(
 		'--release', help='The release candidate branch (if any)')
-	parser.add_argument('--post', type=int, help='A post development version')
 	parser.add_argument(
 		'--local', default=Reference.AUTO_LOCAL, help='A local version tag')
 	no_auto_local_group = parser.add_mutually_exclusive_group()
@@ -122,7 +118,6 @@ def main(*args):
 			alpha_branch=arguments.alpha,
 			beta_branch=arguments.beta,
 			release_branch=arguments.release,
-			post=arguments.post,
 			local=local,
 		)
 	except CalledProcessError as error:

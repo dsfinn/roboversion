@@ -125,7 +125,6 @@ class Reference:
 			candidate_branch=None,
 			beta_branch=None,
 			alpha_branch=None,
-			post=None,
 			local=AUTO_LOCAL,
 			release_bump_index=None,
 	):
@@ -150,7 +149,6 @@ class Reference:
 		:param str candidate_branch: Release candidate prerelease branch
 		:param str beta_branch: Beta prerelease branch
 		:param str alpha_branch: Alpha prerelease branch
-		:param int post: Postdevelopment version number
 		:param str local: Local version string
 		:param int release_bump_index: The index of the release component to
 			bump
@@ -226,9 +224,6 @@ class Reference:
 				components['dev'] = since_prerelease
 		else:
 			components['dev'] = since_release
-		if post is not None:
-			components.pop('dev')
-			components['post'] = post
 		if local is self.AUTO_LOCAL:
 			local = self.hash_abbreviation
 		components['local'] = local
