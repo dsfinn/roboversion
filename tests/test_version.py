@@ -4,7 +4,7 @@ import re
 import pytest
 from hypothesis import assume, given, strategies
 
-from roboversion.version import Version
+from roboversion.version import PEP440_EXPRESSION, Version
 
 
 logger = logging.getLogger(__name__)
@@ -153,6 +153,7 @@ def test_version_str(version_str):
 	for segment in ('epoch', 'post', 'dev'):
 		with pytest.raises(ValueError):
 			bad_version = Version(**{**good_parameters, segment: -1})
+	assert PEP440_EXPRESSION.match(str(version))
 
 
 @given(
