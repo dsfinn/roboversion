@@ -243,21 +243,6 @@ class Version:
 		return cls(**kwargs, release=components)
 
 	@classmethod
-	def from_datetime(cls, time=None, **kwargs):
-		"""
-		Deprecated; use from_date
-		"""
-		logger.warning(
-			'%s.%s is deprecated; use %s.%s instead',
-			cls.__name__,
-			cls.from_datetime.__name__,
-			cls.__name__,
-			cls.from_date.__name__,
-		)
-		date = None if time is None else time.date()
-		return cls.from_date(date)
-
-	@classmethod
 	def from_str(cls, string):
 		"""
 		Construct a Version from a string

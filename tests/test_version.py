@@ -104,11 +104,6 @@ def test_release_str(release_str):
 	Version.from_str(string=release_str)
 
 
-@given(datetime=strategies.just(None)|strategies.datetimes())
-def test_release_datetime(datetime):
-	Version.from_datetime(datetime)
-
-
 @given(date=strategies.just(None)|strategies.dates())
 def test_release_date(date):
 	Version.from_date(date)
@@ -135,11 +130,6 @@ def test_bad_local_str(local_str):
 		Version.from_str(f'0+{local_str}')
 
 
-@given(datetime=strategies.just(None)|strategies.datetimes())
-def test_version_datetime(datetime):
-	Version.from_datetime(datetime)
-
-
 @given(date=strategies.just(None)|strategies.dates())
 def test_version_date(date):
 	Version.from_date(date)
@@ -163,8 +153,6 @@ def test_version_str(version_str):
 	for segment in ('epoch', 'post', 'dev'):
 		with pytest.raises(ValueError):
 			bad_version = Version(**{**good_parameters, segment: -1})
-
-
 
 
 @given(
