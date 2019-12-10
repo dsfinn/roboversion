@@ -251,36 +251,3 @@ class Reference:
 			logger.debug(process.stderr)
 		process.check_returncode()
 		return process.stdout
-
-	@classmethod
-	def all_from_repository(cls, path=None):
-		"""
-		Iterate through the refs at the specified repository path
-
-		:param Path path: Git repository path
-		:yields: tuple(reference, upstream)
-		"""
-		if path is None:
-			path = Path.cwd()
-		process = run(
-			(
-				'git',
-				'for-each-ref',
-				'--format=%(refname:short),%(upstream:short)',
-			),
-			cwd=path,
-			stderr=PIPE,
-			stdout=PIPE,
-			universal_newlines=True,
-		)
-		if process.stderr:
-			logger.debug(process.stderr)
-		for line in process.stdout.splitlines():
-			line = line.strip()
-			if not line:
-				continue
-			ref_name, *upstreams = line.split(',')
-			upstream_name, = upstreams if upstreams else (None,)
-			reference = Reference(repository_path=path, name=ref_name)
-			upstream = Reference(repository_path=path, name=upstream_name)
-			yield reference, upstream

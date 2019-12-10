@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from subprocess import PIPE, STDOUT, run
 from unittest import mock
 
 from hypothesis import assume, given, example, settings
@@ -23,8 +24,27 @@ def repository_path(request):
 
 @fixture
 def references(request, repository_path):
-	return list(
-		x for x, _ in Reference.all_from_repository(path=repository_path))
+	path = repository_path
+	if path is None:
+		path = Path.cwd()
+	process = run(
+		(
+			'git',
+			'for-each-ref',
+			'--format=%(refname:short)',
+		),
+		cwd=path,
+		stderr=STDOUT,
+		stdout=PIPE,
+		universal_newlines=True,
+	)
+	refs = []
+	for line in process.stdout.splitlines():
+		ref_name = line.strip()
+		if not ref_name:
+			continue
+		refs.append(Reference(repository_path=path, name=ref_name))
+	return refs
 
 
 @fixture(params=('HEAD',))
