@@ -64,7 +64,7 @@ def version_strings(draw):
 	prerelease_str = draw(strategies.just(None) | prerelease_strings())
 	post_str = draw(strategies.just(None) | post_development_strings())
 	dev = draw(strategies.just(None) | strategies.integers(min_value=0))
-	local= draw(strategies.just(None) | local_version_strings())
+	local = draw(strategies.just(None) | local_version_strings())
 	if epoch is not None:
 		version_str = f'{epoch}!{release_str}'
 	else:
@@ -86,8 +86,13 @@ def version_strings(draw):
 def test_release(components):
 	version = Version(release=components)
 	bumped_version = version.get_bumped()
+	assert bumped_version.epoch == version.epoch
 	reverted_version = bumped_version.get_bumped(increment=-1)
 	assert str(version) == str(reverted_version)
+	minor_bumped = version.get_bumped(-1)
+	assert str(minor_bumped) == str(bumped_version)
+	major_bumped = version.get_bumped(index=0)
+	assert major_bumped.release[0] == version.release[0] + 1
 
 
 @given(

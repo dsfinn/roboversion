@@ -126,7 +126,7 @@ class Reference:
 			beta_branch=None,
 			alpha_branch=None,
 			local=AUTO_LOCAL,
-			release_bump_index=None,
+			release_bump_index=-1,
 	):
 		"""
 		Calculate the version of this ref based on the specified prerelease

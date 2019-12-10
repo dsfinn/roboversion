@@ -146,7 +146,7 @@ class Version:
 	def local(self):
 		return self._local
 
-	def get_bumped(self, index=None, increment=1):
+	def get_bumped(self, index=-1, increment=1):
 		"""
 		Get the Version corresponding to this Version bumped according to the
 		specified parameters.
@@ -156,13 +156,11 @@ class Version:
 		:param int increment: The amount by which to bump the specified segment
 		:returns: Version
 		"""
-		if index is None:
-			index = len(self.release) - 1
 		new_release = [
 			x for x, _ in zip_longest(
-				self.release[:index+1], range(index + 1), fillvalue=0)
+				self.release[:index], range(index), fillvalue=0)
 		]
-		new_release[-1] += increment
+		new_release.append(self.release[index] + increment)
 		new_release.extend(
 			0 for _ in range(len(self.release) - len(new_release)))
 		return self.__class__(release=new_release)
